@@ -27,8 +27,6 @@ Apache 2.0
 
 The Full Coverage Path Planner package has been tested under [ROS] Melodic and Ubuntu 18.04.
 
-[Build status](https://bitbucket.org/nobleo/full_coverage_path_planner/addon/pipelines/home#!/results)
-
 ## Installation
 
 
@@ -46,7 +44,7 @@ The Full Coverage Path Planner package has been tested under [ROS] Melodic and U
 To build from source, clone the latest version from this repository into your workspace and compile the package using
 
     cd catkin_workspace/src
-    git clone https://bitbucket.org/nobleo/full_coverage_path_planner.git
+    git clone https://github.com/nobleo/full_coverage_path_planner.git
     cd ../
     catkin_make
 
@@ -78,7 +76,7 @@ Depends on:
 
 [mobile_robot_simulator](https://github.com/mrath/mobile_robot_simulator.git) that integrates /cmd_vel into a /base_link TF-frame and an odometry publisher
 
-[tracking_pid](https://bitbucket.org/nobleo/tracking_pid/) Global path tracking controller
+[tracking_pid](https://github.com/nobleo/tracking_pid/) Global path tracking controller
 
 
 ## Launch files
@@ -150,7 +148,7 @@ For use in move_base(\_flex) as "base_global_planner"="full_coverage_path_planne
 
 ## Bugs & Feature Requests
 
-Please report bugs and request features using the [Issue Tracker](https://bitbucket.org/nobleo/full_coverage_path_planner/src/develop/).
+Please report bugs and request features using the [Issue Tracker](https://github.com/nobleo/full_coverage_path_planner/issues).
 
 
 [ROS]: http://www.ros.org
