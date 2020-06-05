@@ -1,0 +1,9 @@
+<library path="lib/libfull_coverage_path_planner">
+  <class name="full_coverage_path_planner/SpiralSTC" type="full_coverage_path_planner::SpiralSTC" base_class_type="nav_core::BaseGlobalPlanner">
+    <description>
+      Plans a path that covers all accessible points in a costmap by using Spiral-STC.
+      Spiral-STC works by following the walls and spiraling inwards until it cannot go further.
+      Then it uses A* to go back outside of the current spiral and then spirals again.
+    </description>
+  </class>
+</library>

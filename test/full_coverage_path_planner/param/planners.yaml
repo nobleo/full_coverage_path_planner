@@ -1,0 +1,7 @@
+planners:
+  - name: 'SpiralSTC'
+    type: 'full_coverage_path_planner/SpiralSTC'
+planner:
+  allow_unknown: true
+  default_tolerance: 0.0
+  visualize_potential: true

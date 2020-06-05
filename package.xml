@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>full_coverage_path_planner</name>
+  <version>0.6.4</version>
+  <description>Full coverage path planning provides a move_base_flex plugin that can plan a path that will fully cover a given area</description>
+  <author email="cesar.lopez@nobleo.nl">Cesar Lopez</author>
+  <author email="ferry.schoenmakers@nobleo.nl">Ferry Schoenmakers</author>
+  <author email="tim.clephas@nobleo.nl">Tim Clephas</author>
+  <author email="jerrel.unkel@nobleo.nl">Jerrel Unkel</author>
+  <author>Loy van Beek</author>
+  <author>Yury Brodskiy</author>
+  <maintainer email="cesar.lopez@nobleo.nl">Cesar Lopez</maintainer>
+
+  <license>Apache 2.0</license>
+  <url>http://wiki.ros.org/full_coverage_path_planner</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roslint</build_depend>
+  <build_depend>rostest</build_depend>
+  <depend>base_local_planner</depend>
+  <depend>costmap_2d</depend>
+  <depend>pluginlib</depend>
+  <depend>nav_core</depend>
+  <depend>roscpp</depend>
+  <depend>tf</depend>
+  <exec_depend>amcl</exec_depend>
+  <exec_depend>joint_state_publisher</exec_depend>
+  <exec_depend>map_server</exec_depend>
+  <exec_depend>move_base</exec_depend>
+  <exec_depend>move_base_flex</exec_depend>
+  <test_depend>cv_bridge</test_depend>
+  <test_depend>rosunit</test_depend>
+  <test_depend>tracking_pid</test_depend>
+
+  <export>
+    <nav_core plugin="${prefix}/fcpp_plugin.xml"/>
+  </export>
+
+</package>

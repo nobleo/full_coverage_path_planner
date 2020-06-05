@@ -1,0 +1,10 @@
+controllers:
+  - name: 'tracking_pid'
+    type: 'tracking_pid/TrackingPidLocalPlanner'
+
+controller:
+  holonomic_robot: false
+
+mbf_tolerance_check: true
+dist_tolerance: 0.2
+angle_tolerance: 0.5

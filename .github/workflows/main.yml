@@ -1,0 +1,16 @@
+
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  industrial_ci:
+    strategy:
+      matrix:
+        env:
+          - {ROS_DISTRO: melodic, ROS_REPO: main, UPSTREAM_WORKSPACE: 'github:nobleo/mobile_robot_simulator#fix/install github:nobleo/tracking_pid#master'}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: 'ros-industrial/industrial_ci@master'
+        env: ${{matrix.env}}
