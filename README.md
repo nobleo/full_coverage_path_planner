@@ -154,3 +154,7 @@ Please report bugs and request features using the [Issue Tracker](https://github
 [ROS]: http://www.ros.org
 [rviz]: http://wiki.ros.org/rviz
 [MBF]: http://wiki.ros.org/move_base_flex
+
+## Acknowledgments
+
+This software module is a result of the FTP ROSin project [Coverage Path Planning and Control](https://www.rosin-project.eu/ftp/coverage-path-planning-and-control).
