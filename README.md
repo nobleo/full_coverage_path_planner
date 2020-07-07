@@ -52,7 +52,7 @@ To build from source, clone the latest version from this repository into your wo
 
 All tests can be run using:
 
-    catkin build tracking_pid --catkin-make-args run_tests
+    catkin build full_coverage_path_planner --catkin-make-args run_tests
 
 #### test_common
 Unit test that checks the basic functions used by the repository
