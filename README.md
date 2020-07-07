@@ -1,8 +1,8 @@
-# Full Coverage Path Planner (fcpp)
+# Full Coverage Path Planner (FCPP)
 
 ## Overview
 
-This package provides an implementation of a Full Coverage Path Planner (fcpp) using the Backtracking Spiral Algorithm (BSA), see [1].
+This package provides an implementation of a Full Coverage Path Planner (FCPP) using the Backtracking Spiral Algorithm (BSA), see [1].
 
 This packages acts as a global planner plugin to the Move Base Flex package (http://wiki.ros.org/move_base_flex).
 
@@ -89,8 +89,6 @@ Mobile_robot_simulator is used to integrate cmd_vel output into TF and odometry.
 
 Arguments:
 
-* **`navigation`**: move_base_flex. Default: `move_base_flex`
-* **`tracking_pid_mode`**: node / plugin. Default: `node`
 * **`map`**: path to a global costmap. Default: `$(find full_coverage_path_planner)/maps/basement.yaml)`
 * **`target_x_vel`**: target x velocity for use in interpolator. Default: `0.2`
 * **`target_yaw_vel`**: target yaw velocity for use in interpolator. Default: `0.2`
@@ -157,4 +155,21 @@ Please report bugs and request features using the [Issue Tracker](https://github
 
 ## Acknowledgments
 
-This software module is a result of the FTP ROSin project [Coverage Path Planning and Control](https://www.rosin-project.eu/ftp/coverage-path-planning-and-control).
+<!--
+    ROSIN acknowledgement from the ROSIN press kit
+    @ https://github.com/rosin-project/press_kit
+-->
+
+<a href="http://rosin-project.eu">
+  <img src="http://rosin-project.eu/wp-content/uploads/rosin_ack_logo_wide.png"
+       alt="rosin_logo" height="60" >
+</a>
+
+Supported by ROSIN - ROS-Industrial Quality-Assured Robot Software Components.
+More information: <a href="http://rosin-project.eu">rosin-project.eu</a>
+
+<img src="http://rosin-project.eu/wp-content/uploads/rosin_eu_flag.jpg"
+     alt="eu_flag" height="45" align="left" >
+
+This project has received funding from the European Union’s Horizon 2020
+research and innovation programme under grant agreement no. 732287.
