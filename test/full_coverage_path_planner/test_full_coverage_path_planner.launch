@@ -2,10 +2,14 @@
 
 <launch>
     <arg name="map" default="$(find full_coverage_path_planner)/maps/grid.yaml"/>
+    <arg name="coverage_area_offset" default="-2.5 -2.5 0 0 0 0"/>
+    <arg name="coverage_area_size_x" default="10"/>
+    <arg name="coverage_area_size_y" default="10"/>
     <arg name="target_x_vel" default="0.5"/>
     <arg name="target_yaw_vel" default="0.4"/>
     <arg name="robot_radius" default="0.3"/>
     <arg name="tool_radius" default="0.3"/>
+    <arg name="rviz" default="true"/>
 
     <!--Move base flex, using the full_coverage_path_planner-->
     <node pkg="mbf_costmap_nav" type="mbf_costmap_nav" respawn="false" name="move_base_flex" output="screen" required="true">
@@ -61,10 +65,10 @@
     </node>
 
     <!-- Launch coverage progress tracking -->
-    <node pkg="tf" type="static_transform_publisher" name="map_to_coveragemap" args="-2.5 -2.5 0 0.0 0 0 map coverage_map 100" />
+    <node pkg="tf" type="static_transform_publisher" name="map_to_coveragemap" args="$(arg coverage_area_offset) map coverage_map 100" />
     <node pkg="full_coverage_path_planner" type="coverage_progress" name="coverage_progress">
-        <param name="~target_area/x" value="10" />
-        <param name="~target_area/y" value="10" />
+        <param name="~target_area/x" value="$(arg coverage_area_size_x)" />
+        <param name="~target_area/y" value="$(arg coverage_area_size_y)" />
         <param name="~coverage_radius" value="$(arg tool_radius)" />
         <remap from="reset" to="coverage_progress/reset" />
         <param name="~map_frame" value="/coverage_map"/>
@@ -75,5 +79,5 @@
         args="pub --latch /move_base/goal move_base_msgs/MoveBaseActionGoal --file=$(find full_coverage_path_planner)/test/simple_goal.yaml"/>
 
     <!-- rviz -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find full_coverage_path_planner)/test/full_coverage_path_planner/fcpp.rviz" />
+    <node if="$(eval rviz)" name="rviz" pkg="rviz" type="rviz" args="-d $(find full_coverage_path_planner)/test/full_coverage_path_planner/fcpp.rviz" />
 </launch>
