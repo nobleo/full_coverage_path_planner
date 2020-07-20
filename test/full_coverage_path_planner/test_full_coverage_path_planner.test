@@ -1,85 +1,20 @@
 <?xml version="1.0"?>
 
 <launch>
-    <arg name="map" default="$(find full_coverage_path_planner)/maps/basement.yaml"/>
-    <arg name="target_x_vel" default="0.5"/>
-    <arg name="target_yaw_vel" default="0.4"/>
-    <arg name="robot_radius" default="0.5"/>
-    <arg name="tool_radius" default="0.5"/>
-    <arg name="launch_rviz" default="false"/>
+    <arg name="rviz" default="false"/>
 
-    <!--Move base flex, using the full_coverage_path_planner-->
-    <node pkg="mbf_costmap_nav" type="mbf_costmap_nav" respawn="false" name="move_base_flex" output="screen" required="true">
-        <param name="tf_timeout" value="1.5"/>
-        <param name="planner_max_retries" value="3"/>
-        <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/planners.yaml" command="load" />
-        <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/local_costmap_params.yaml" command="load" />
-
-        <param name="SpiralSTC/robot_radius" value="$(arg robot_radius)"/>
-        <param name="SpiralSTC/tool_radius" value="$(arg tool_radius)"/>
-        <param name="global_costmap/robot_radius" value="$(arg robot_radius)"/>
-        <remap from="odom" to="/odom"/>
-        <remap from="scan" to="/scan"/>
-
-        <remap from="/move_base_flex/SpiralSTC/plan" to="/move_base/SpiralSTC/plan"/>
-        <remap from="/move_base_flex/tracking_pid/interpolator" to="/move_base/TrackingPidLocalPlanner/interpolator"/>
-    </node>
-    <!-- Move Base backwards compatibility -->
-    <node pkg="mbf_costmap_nav" type="move_base_legacy_relay.py" name="move_base"/>
-
-    <!--Rather than running Gazebo to simulate a robot, just use cmd_vel to calculate odom and TF-->
-    <node pkg="mobile_robot_simulator" type="mobile_robot_simulator_node" name="mobile_robot_simulator" output="screen">
-        <param name="publish_map_transform" value="true"/>
-        <param name="publish_rate" value="10.0"/>
-        <param name="velocity_topic" value="/move_base/cmd_vel"/>
-        <param name="odometry_topic" value="/odom"/>
-    </node>
-
-    <!--We need a map to fully cover-->
-    <node name="grid_server" pkg="map_server" type="map_server" args="$(arg map)">
-        <param name="frame_id" value="/map"/>
-    </node>
-
-    <!--Tracking_pid cannot just accept a nav_msgs/Path, it can only go to a PoseStamped,
-       so the path_interpolator drags a PoseStamped over a Path at a given speed-->
-    <node name="interpolator" pkg="tracking_pid" type="path_interpolator">
-        <param name="target_x_vel" value="$(arg target_x_vel)"/>
-        <param name="target_yaw_vel" value="$(arg target_yaw_vel)"/>
-        <remap from="path" to="/move_base/SpiralSTC/plan"/>
-    </node>
-
-    <!--Tracking_pid tries to get the robot as close to it's goal point as possible-->
-    <node name="controller" pkg="tracking_pid" type="controller" output="screen">
-        <remap from="move_base/cmd_vel" to="/move_base/cmd_vel"/>
-        <remap from="local_trajectory" to="trajectory"/>
-        <param name="controller_debug_enabled" value="True"/>
-        <param name="track_base_link" value="true"/>
-        <param name="l" value="0.5"/>
-        <param name="Ki_long" value="0.0"/>
-        <param name="Kp_long" value="2.0"/>
-        <param name="Kd_long" value="0.5"/>
-        <param name="Ki_lat" value="0.0"/>
-        <param name="Kp_lat" value="4.0"/>
-        <param name="Kd_lat" value="0.3"/>
-    </node>
-
-    <!-- Launch coverage progress tracking -->
-    <node pkg="tf" type="static_transform_publisher" name="map_to_coveragemap" args="3 -0.25 0 1.57 0 0 map coverage_map 100" />
-    <node pkg="full_coverage_path_planner" type="coverage_progress" name="coverage_progress">
-        <param name="~target_area/x" value="3.0" /> <!--20-->
-        <param name="~target_area/y" value="5" /> <!--30-->
-        <param name="~coverage_radius" value="$(arg tool_radius)" />
-        <remap from="reset" to="coverage_progress/reset" />
-        <param name="~map_frame" value="/coverage_map"/>
-    </node>
-
-    <!--Tracking_pid can be paused and it must be actively unpaused-->
-    <node name="publish_enable" pkg="rostopic" type="rostopic" args="pub --latch /enable_control std_msgs/Bool 'data: true'"/>
-
-    <node name="publish_simple_goal" pkg="rostopic" type="rostopic"  launch-prefix="bash -c 'sleep 1.0; $0 $@' "
-        args="pub --latch /move_base/goal move_base_msgs/MoveBaseActionGoal --file=$(find full_coverage_path_planner)/test/simple_goal.yaml"/>
+    <include file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/test_full_coverage_path_planner.launch" >
+        <arg name="map" value="$(find full_coverage_path_planner)/maps/basement.yaml"/>
+        <arg name="coverage_area_offset" value="3 -0.25 0 1.57 0 0"/>
+        <arg name="coverage_area_size_x" value="3.0"/>
+        <arg name="coverage_area_size_y" value="5.0"/>
+        <arg name="target_x_vel" value="0.5"/>
+        <arg name="target_yaw_vel" value="0.4"/>
+        <arg name="robot_radius" value="0.5"/>
+        <arg name="tool_radius" value="0.5"/>
+        <arg name="rviz" value="$(eval rviz)"/>
+    </include>
 
     <test test-name="rostest_full_coverage_path_planner_node" pkg="full_coverage_path_planner" type="test_full_coverage_path_planner_system.py" time-limit="300.0" />
 
-    <node  if="$(eval launch_rviz)" name="rviz" pkg="rviz" type="rviz" args="-d $(find full_coverage_path_planner)/test/full_coverage_path_planner/fcpp.rviz" />
 </launch>
