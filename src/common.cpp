@@ -133,7 +133,7 @@ bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_
         }
 
         // For all nodes surrounding the end of the end of the path nn
-        for (int i = 0; i < 4; ++i)
+        for (uint i = 0; i < 4; ++i)
         {
           Point_t p2 =
           {
