@@ -4,7 +4,7 @@
 
 This package provides an implementation of a Full Coverage Path Planner (FCPP) using the Backtracking Spiral Algorithm (BSA), see [1].
 
-This packages acts as a global planner plugin to the Move Base Flex package (http://wiki.ros.org/move_base_flex).
+This packages acts as a global planner plugin to the Move Base package (http://wiki.ros.org/move_base).
 
 ![BSA](doc/fcpp_robot_0_5m_plus_tool_0_2m.png)
 
@@ -36,7 +36,7 @@ The Full Coverage Path Planner package has been tested under [ROS] Melodic and U
 #### Dependencies
 
 - [Robot Operating System (ROS)](http://wiki.ros.org) (middleware for robotics),
-- [Move Base Flex (MBF)](http://wiki.ros.org/move_base_flex) (Move base flex node)
+- [Move Base Flex (MBF)](http://wiki.ros.org/move_base_flex) (move base flex node) used for system testing
 
 
 #### Building
