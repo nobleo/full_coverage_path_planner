@@ -25,8 +25,11 @@
         <remap from="/move_base_flex/SpiralSTC/plan" to="/move_base/SpiralSTC/plan"/>
         <remap from="/move_base_flex/tracking_pid/interpolator" to="/move_base/TrackingPidLocalPlanner/interpolator"/>
     </node>
+
     <!-- Move Base backwards compatibility -->
-    <node pkg="mbf_costmap_nav" type="move_base_legacy_relay.py" name="move_base"/>
+    <node pkg="mbf_costmap_nav" type="move_base_legacy_relay.py" name="move_base" >
+        <param name="base_global_planner" value="SpiralSTC" />
+    </node>
 
     <!-- Mobile robot simulator -->
     <node pkg="mobile_robot_simulator" type="mobile_robot_simulator_node" name="mobile_robot_simulator" output="screen">
