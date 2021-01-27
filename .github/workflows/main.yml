@@ -1,4 +1,3 @@
-
 name: CI
 
 on: [push, pull_request]
@@ -8,7 +7,8 @@ jobs:
     strategy:
       matrix:
         env:
-          - {ROS_DISTRO: melodic, ROS_REPO: main, UPSTREAM_WORKSPACE: 'github:nobleo/mobile_robot_simulator#fix/install github:nobleo/tracking_pid#master'}
+          - {ROS_DISTRO: melodic, ROS_REPO: main, UPSTREAM_WORKSPACE: 'github:nobleo/tracking_pid#master'}
+          - {ROS_DISTRO: noetic, ROS_REPO: main, UPSTREAM_WORKSPACE: 'github:nobleo/tracking_pid#master'}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
