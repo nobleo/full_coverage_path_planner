@@ -74,7 +74,7 @@ Give a 2D-goal in rviz to start path planning algorithm
 
 Depends on:
 
-[mobile_robot_simulator](https://github.com/mrath/mobile_robot_simulator.git) that integrates /cmd_vel into a /base_link TF-frame and an odometry publisher
+[mobile_robot_simulator](https://github.com/mrath/mobile_robot_simulator.git) that integrates /cmd_vel into a base_link TF-frame and an odometry publisher
 
 [tracking_pid](https://github.com/nobleo/tracking_pid/) Global path tracking controller
 

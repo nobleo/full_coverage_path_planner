@@ -45,8 +45,8 @@ class TestTrackingPID(unittest.TestCase):
         """
         p1_msg = rospy.wait_for_message("trajectory", traj_point, timeout=5)
         p1_yaw = self.quaternion_to_yaw(p1_msg.pose.pose.orientation)
-        self.listener.waitForTransform('/map', '/base_link', rospy.Time(0), rospy.Duration(1.0))
-        (trans1, rot1) = self.listener.lookupTransform('/map', '/base_link', rospy.Time(0))
+        self.listener.waitForTransform('map', 'base_link', rospy.Time(0), rospy.Duration(1.0))
+        (trans1, rot1) = self.listener.lookupTransform('map', 'base_link', rospy.Time(0))
         rospy.sleep(2.0)
         p2_msg = rospy.wait_for_message("trajectory", traj_point, timeout=5)
         p2_yaw = self.quaternion_to_yaw(p2_msg.pose.pose.orientation)

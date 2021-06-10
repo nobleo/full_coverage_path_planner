@@ -25,7 +25,7 @@
 
     <!--We need a map to fully cover-->
     <node name="grid_server" pkg="map_server" type="map_server" args="$(arg map)">
-        <param name="frame_id" value="/map"/>
+        <param name="frame_id" value="map"/>
     </node>
 
     <!-- Mobile robot simulator -->
