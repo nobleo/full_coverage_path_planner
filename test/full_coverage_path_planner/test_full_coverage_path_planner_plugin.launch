@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-    <arg name="map" default="$(find full_coverage_path_planner)/maps/grid.yaml"/>
+    <arg name="map" default="$(find full_coverage_path_planner)/maps/square.yaml"/>
     <arg name="robot_radius" default="0.3"/>
     <arg name="tool_radius" default="0.2"/>
 

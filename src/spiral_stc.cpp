@@ -102,6 +102,79 @@ std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool> > const& g
   return pathNodes;
 }
 
+
+// /**
+//  * Uses a wavefront algorithm to determine the nearest open verticies/corner on the grid.
+//  * The mountain pattern (bourstrophedon) should idealy begin from the corner of the grid.
+//  * @param grid internal map representation
+//  * @param corner_list Output map in which all cells except the corners are marked as visited (true).
+//  * @param start_x The x position of the corner to begin search
+//  * @param start_y The y position of the corner to begin search
+//  */
+// void findNearestOpenVerticies(std::vector<std::vector<bool>> const& grid,
+//                               std::vector<std::vector<bool>>& corner_list,
+//                               int start_x,
+//                               int start_y)
+// {
+//   std::queue<std::tuple<int, int>> nodes;
+//   int bound_x = -1, bound_y = -1;
+//   bool processed[grid.size()][grid[0].size()] = {false};   // store node indicies which are already processed
+//   nodes.push({start_x, start_y});   // add first node to queue
+  
+//   while(!nodes.empty()) {
+
+//     // get current node
+//     int x = std::get<0>(nodes.front());
+//     int y = std::get<1>(nodes.front());
+//     nodes.pop();
+
+//     // check node
+//     // To accomodate box case such as:
+//     // 0000000000000
+//     // 0011111111100
+//     // 0011000001100
+//     // 0011000001100
+//     // 0011111111100
+//     // 0000000000000
+//     if ((bound_x == -1 || bound_y == -1) && grid[x][y] == eNodeVisited) {
+//       bound_x == x;
+//       bound_y = y;
+//     } else {
+//       if((x < bound_x || y < bound_y) && grid[x][y] == eNodeVisited) {
+//         bound_x = dmin(x, bound_x);
+//         bound_y = dmin(y, bound_y);
+//       }
+//       if (grid[x][y] == eNodeOpen) {
+//         if (bound_x == -1 || bound_y == -1) {
+//         }
+//         corner_list[x][y] = eNodeOpen;
+//         return;
+//       }
+//     }
+    
+
+//     // If node is not open, add unprocessed adjacent nodes to queue
+//     if (x+1 < grid.size() && processed[x+1][y] == false) { 
+//       nodes.push({x+1, y});
+//       processed[x+1][y] == true;
+//     } // East
+//     if (x-1 > 0 && processed[x-1][y] == false) { 
+//       nodes.push({x-1, y});
+//       processed[x-1][y] == true;
+//     } // West
+//     if (y+1 < grid[0].size() && processed[x][y+1] == false) {
+//       nodes.push({x, y+1});
+//       processed[x][y+1] == true;
+//     } // North
+//     if (y-1 > 0 && processed[x][y-1] == false) {
+//       nodes.push({x, y-1});
+//       processed[x][y-1] == true;
+//     } // South
+
+//   }
+
+// }
+
 std::list<Point_t> SpiralSTC::spiral_stc(std::vector<std::vector<bool> > const& grid,
                                           Point_t& init,
                                           int &multiple_pass_counter,
@@ -135,6 +208,30 @@ std::list<Point_t> SpiralSTC::spiral_stc(std::vector<std::vector<bool> > const& 
 #endif
 
   pathNodes = SpiralSTC::spiral(grid, pathNodes, visited);                // First spiral fill
+  // std::list<Point_t> map_verticies;
+  // map_verticies.push_back({0, 0});
+  // map_verticies.push_back({nCols, 0});
+  // map_verticies.push_back({nCols, nRows});
+  // map_verticies.push_back({0, nRows});
+  // std::vector<std::vector<bool>> corner_list(nCols, std::vector<bool>(nRows, eNodeVisited));
+  // findNearestOpenVerticies(grid, corner_list, 0, 0);
+  // findNearestOpenVerticies(grid, corner_list, 0, nRows-1);
+  // findNearestOpenVerticies(grid, corner_list, nCols-1, 0);
+  // findNearestOpenVerticies(grid, corner_list, nCols-1, nRows-1);
+
+  //   for (int i = 0; i < nRows; ++i)
+  //   {
+  //       for (int j = 0; j < nCols; ++j)
+  //       {
+  //           std::cout << grid[i][j] << ' ';
+  //       }
+  //       std::cout << std::endl;
+  //   }
+
+  // if (a_star_to_open_space(grid, pathNodes.back(), 1, corner_list, map_verticies, pathNodes)) {
+  //   ROS_INFO("A_star_to_open_space is resigning");
+  // }
+
   std::list<Point_t> goals = map_2_goals(visited, eNodeOpen);  // Retrieve remaining goalpoints
   // Add points to full path
   std::list<gridNode_t>::iterator it;
@@ -191,6 +288,7 @@ std::list<Point_t> SpiralSTC::spiral_stc(std::vector<std::vector<bool> > const& 
 #endif
 
     // Spiral fill from current position
+    // TODO: Convert to U-turn pattern
     pathNodes = spiral(grid, pathNodes, visited);
 
 #ifdef DEBUG_PLOT
