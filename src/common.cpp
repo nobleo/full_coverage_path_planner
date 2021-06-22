@@ -309,3 +309,36 @@ std::list<Point_t> map_2_goals(std::vector<std::vector<bool> > const& grid, bool
   }
   return goals;
 }
+
+
+void printPathNodes(std::list<gridNode_t> pathNodes)
+{
+  for (gridNode_t node : pathNodes) {
+    std::cout << "(" << node.pos.x << ", " << node.pos.y << ")" << ": " << node.cost << " " << node.he << std::endl;
+  }
+  std:: cout << "--------------------------------------" << std::endl;
+
+}
+
+bool validMove(int x2, int y2, int nCols, int nRows,
+               std::vector<std::vector<bool>> const& grid,
+               std::vector<std::vector<bool>> const& visited)
+{
+  return (x2 >= 0 && x2 < nCols && y2 >= 0 && y2 < nRows) // path node is within the map
+        && (grid[y2][x2] == eNodeOpen && visited[y2][x2] == eNodeOpen); // the path node is unvisited
+}
+
+void addNodeToList(int x2, int y2, gridNode_t prev, std::list<gridNode_t>& pathNodes,
+                   std::vector<std::vector<bool>>& visited) {
+  Point_t new_point = { x2, y2 };
+  gridNode_t new_node =
+  {
+    new_point,  // Point: x,y
+    0,          // Cost
+    0,          // Heuristic
+  };
+  prev = pathNodes.back();
+  pathNodes.push_back(new_node);
+  visited[y2][x2] = eNodeVisited;  // Close node
+}
+
