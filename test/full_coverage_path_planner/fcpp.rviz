@@ -5,7 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded: ~
       Splitter Ratio: 0.5
-    Tree Height: 548
+    Tree Height: 554
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -62,7 +62,6 @@ Visualization Manager:
           Value: true
         odom:
           Value: true
-      Marker Alpha: 1
       Marker Scale: 1
       Name: TF
       Show Arrows: true
@@ -87,14 +86,6 @@ Visualization Manager:
       Unreliable: false
       Use Timestamp: false
       Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /path_coverage_marker
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -112,35 +103,10 @@ Visualization Manager:
         Z: 0
       Pose Color: 255; 85; 255
       Pose Style: Arrows
-      Queue Size: 10
       Radius: 0.029999999329447746
       Shaft Diameter: 0.019999999552965164
       Shaft Length: 0.05000000074505806
-      Topic: /move_base/TrajectoryPlannerROS/global_plan
-      Unreliable: false
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: true
-      Head Diameter: 0.30000001192092896
-      Head Length: 0.20000000298023224
-      Length: 0.30000001192092896
-      Line Style: Lines
-      Line Width: 0.029999999329447746
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Queue Size: 10
-      Radius: 0.029999999329447746
-      Shaft Diameter: 0.10000000149011612
-      Shaft Length: 0.10000000149011612
-      Topic: /move_base/TrajectoryPlannerROS/local_plan
+      Topic: /move_base/SpiralSTC/plan
       Unreliable: false
       Value: true
     - Angle Tolerance: 0.10000000149011612
@@ -164,7 +130,6 @@ Visualization Manager:
       Keep: 10000
       Name: Odometry
       Position Tolerance: 0.10000000149011612
-      Queue Size: 10
       Shape:
         Alpha: 1
         Axes Length: 1
@@ -178,16 +143,50 @@ Visualization Manager:
       Topic: /odom
       Unreliable: false
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /visualization_marker
+      Name: Tracking_pid local planner
+      Namespaces:
+        axle point: true
+        control point: true
+        goal point: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /move_base_flex/tracking_pid/interpolator
+      Name: Interpolator (mbf)
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
     - Alpha: 0.30000001192092896
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Coverage progress map
       Topic: /coverage_grid
       Unreliable: false
       Use Timestamp: false
-      Value: false
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /move_base/TrackingPidLocalPlanner/interpolator
+      Name: Interpolator (mb)
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Footprint
+      Topic: /move_base_flex/global_costmap/footprint
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -225,18 +224,19 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 107.97452545166016
+      Scale: 97.19247436523438
       Target Frame: <Fixed Frame>
-      X: -0.3638369143009186
-      Y: 0.05843987315893173
+      Value: TopDownOrtho (rviz)
+      X: -0.14492475986480713
+      Y: 1.0135213136672974
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1016
+  Height: 1023
   Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd00000004000000000000016a0000035afc0200000008fb0000001200530065006c0065006300740069006f006e010000003d000000a50000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c00610079007301000000e8000002af000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000037afc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000280000037a000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004f30000003efc0100000002fb0000000800540069006d00650100000000000004f3000002eb00fffffffb0000000800540069006d00650100000000000004500000000000000000000003830000035a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000016a00000361fc0200000008fb0000001200530065006c0065006300740069006f006e010000003d000000a60000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c00610079007301000000e9000002b5000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000037afc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000280000037a000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000039f0000003efc0100000002fb0000000800540069006d006501000000000000039f000002eb00fffffffb0000000800540069006d006501000000000000045000000000000000000000022f0000036100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -245,6 +245,6 @@ Window Geometry:
     collapsed: true
   Views:
     collapsed: true
-  Width: 1267
-  X: 72
+  Width: 927
+  X: 67
   Y: 27

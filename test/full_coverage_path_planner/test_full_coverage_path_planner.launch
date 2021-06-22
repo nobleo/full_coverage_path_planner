@@ -14,15 +14,15 @@
     <!--Move base flex, using the full_coverage_path_planner-->
     <node pkg="mbf_costmap_nav" type="mbf_costmap_nav" respawn="false" name="move_base_flex" output="screen" required="true">
         <param name="tf_timeout" value="1.5"/>
-        <!-- <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/planners.yaml" command="load" />
-        <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/local_costmap_params.yaml" command="load" /> -->
+        <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/planners.yaml" command="load" />
+        <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/local_costmap_params.yaml" command="load" />
         <param name="SpiralSTC/robot_radius" value="$(arg robot_radius)"/>
         <param name="SpiralSTC/tool_radius" value="$(arg tool_radius)"/>
         <param name="global_costmap/robot_radius" value="$(arg robot_radius)"/>
-        <!-- <remap from="odom" to="/odom"/>
-        <remap from="scan" to="/scan"/> -->
+        <remap from="odom" to="/odom"/>
+        <remap from="scan" to="/scan"/>
 
-        <!-- <remap from="/move_base_flex/SpiralSTC/plan" to="/move_base/SpiralSTC/plan"/> -->
+        <remap from="/move_base_flex/SpiralSTC/plan" to="/move_base/SpiralSTC/plan"/>
         <remap from="/move_base_flex/tracking_pid/interpolator" to="/move_base/TrackingPidLocalPlanner/interpolator"/>
     </node>
 
