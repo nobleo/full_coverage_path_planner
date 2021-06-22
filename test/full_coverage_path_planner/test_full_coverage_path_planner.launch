@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 
 <launch>
-    <arg name="map" default="$(find full_coverage_path_planner)/maps/grid.yaml"/>
+    <arg name="map" default="$(find full_coverage_path_planner)/maps/square.yaml"/>
     <arg name="coverage_area_offset" default="-2.5 -2.5 0 0 0 0"/>
     <arg name="coverage_area_size_x" default="10"/>
     <arg name="coverage_area_size_y" default="10"/>
     <arg name="target_x_vel" default="0.5"/>
     <arg name="target_yaw_vel" default="0.4"/>
     <arg name="robot_radius" default="0.3"/>
-    <arg name="tool_radius" default="0.3"/>
+    <arg name="tool_radius" default="0.2"/>
     <arg name="rviz" default="true"/>
 
     <!--Move base flex, using the full_coverage_path_planner-->
