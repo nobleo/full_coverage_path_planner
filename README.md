@@ -1,5 +1,6 @@
 # Full Coverage Path Planner (FCPP)
 
+Migration to ros2 in progress...
 ## Overview
 
 This package provides an implementation of a Full Coverage Path Planner (FCPP) using the Backtracking Spiral Algorithm (BSA), see [1].
@@ -21,7 +22,7 @@ Apache 2.0
 
 **Author(s): Yury Brodskiy, Ferry Schoenmakers, Tim Clephas, Jerrel Unkel, Loy van Beek, Cesar lopez**
 
-**Maintainer:  Cesar Lopez, cesar.lopez@nobleo.nl**
+**Maintainer(s):  Cesar Lopez / cesar.lopez@nobleo.nl, Tim Clephas tim.clephas@nobleo.nl**
 
 **Affiliation: Nobleo Projects BV, Eindhoven, the Netherlands**
 
