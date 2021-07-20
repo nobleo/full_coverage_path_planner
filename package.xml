@@ -16,13 +16,16 @@
   <url>http://wiki.ros.org/full_coverage_path_planner</url>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-  <build_depend>rostest</build_depend>
+  <depend>geometry_msgs</depend>
   <depend>nav2_costmap_2d</depend>
-  <depend>nav2_amcl</depend>
-  <depend>nav2_planner</depend>
+  <depend>nav2_core</depend>
+  <depend>nav2_common</depend>
+  <depend>nav2_util</depend>
+  <depend>nav2_msgs</depend>
+  <depend>nav_msgs</depend>
   <depend>pluginlib</depend>
   <depend>rclcpp</depend>
-  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
   <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>nav2_amcl</exec_depend>
   <exec_depend>nav2_map_server</exec_depend>
@@ -34,11 +37,10 @@
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
   <test_depend>cv_bridge</test_depend>
-  <test_depend>rosunit</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
-    <nav_core plugin="${prefix}/fcpp_plugin.xml"/>
+    <nav2_core plugin="${prefix}/fcpp_plugin.xml"/>
   </export>
 
 </package>

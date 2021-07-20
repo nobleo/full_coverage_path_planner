@@ -17,12 +17,38 @@ endif()
 ################################################################################
 
 find_package(ament_cmake REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(nav2_core REQUIRED)
 find_package(nav2_costmap_2d REQUIRED)
-find_package(nav_core REQUIRED)
+find_package(nav2_msgs REQUIRED)
+find_package(nav2_util REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rostest REQUIRED)
-find_package(tf2 REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+
+################################################################################
+# Dependencies
+################################################################################
+
+set(dependencies
+  geometry_msgs
+  nav_msgs
+  nav2_core
+  nav2_costmap_2d
+  nav2_msgs
+  nav2_util
+  pluginlib
+  rclcpp
+  std_msgs
+  tf2_ros
+)
+
+ament_target_dependencies(${PROJECT_NAME}
+  ${dependencies}
+)
 
 ################################################################################
 # Include
@@ -40,10 +66,9 @@ add_definitions(${EIGEN3_DEFINITIONS})
 
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
-ament_export_dependencies(nav2_costmap_2d)
-ament_export_dependencies(nav_core)
-ament_export_dependencies(pluginlib)
-ament_export_dependencies(rclcpp)
+ament_export_dependencies(${dependencies})
+
+pluginlib_export_plugin_description_file(nav2_core fcpp_plugin.xml)
 
 ################################################################################
 # Add libraries
@@ -54,7 +79,6 @@ add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}.cpp
   src/spiral_stc.cpp
 )
-add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 ################################################################################
 # Install
@@ -71,7 +95,7 @@ install(DIRECTORY include/${PROJECT_NAME}
 )
 
 install(FILES fcpp_plugin.xml
-  DESTINATION share
+  DESTINATION share/${PROJECT_NAME}
 )
 
 ################################################################################
@@ -88,7 +112,6 @@ if (BUILD_TESTING)
   ament_add_gtest(test_common test/src/test_common.cpp test/src/util.cpp src/common.cpp)
   ament_add_gtest(test_spiral_stc test/src/test_spiral_stc.cpp test/src/util.cpp src/spiral_stc.cpp src/common.cpp src/${PROJECT_NAME}.cpp)
   ament_target_dependencies(test_spiral_stc ${${PROJECT_NAME}_EXPORTED_TARGETS})
-  target_link_libraries(test_spiral_stc)
 
   find_package(OpenCV)
   ament_target_dependencies(test_spiral_stc ${OpenCV_INCLUDE_DIRS})
