@@ -4,7 +4,7 @@
 #include <list>
 #include <vector>
 
-#include "full_coverage_path_planner/full_coverage_path_planner.h"
+#include "full_coverage_path_planner/full_coverage_path_planner.hpp"
 
 /*  *** Note the coordinate system ***
  *  grid[][] is a 2D-vector:
@@ -36,6 +36,13 @@ FullCoveragePathPlanner::FullCoveragePathPlanner() : initialized_(false)
 {
 }
 
+auto FullCoveragePathPlanner::createQuaternionMsgFromYaw(double yaw)
+{
+  tf2::Quaternion q;
+  q.setRPY(0, 0, yaw);
+  return tf2::toMsg(q);
+}
+
 void FullCoveragePathPlanner::publishPlan(const std::vector<geometry_msgs::msg::PoseStamped>& path)
 {
   if (!initialized_)
@@ -60,7 +67,7 @@ void FullCoveragePathPlanner::publishPlan(const std::vector<geometry_msgs::msg::
     gui_path.poses[i] = path[i];
   }
 
-  plan_pub_.publish(gui_path);
+  plan_pub_->publish(gui_path);
 }
 
 void FullCoveragePathPlanner::parsePointlist2Plan(const geometry_msgs::msg::PoseStamped& start,
@@ -69,7 +76,7 @@ void FullCoveragePathPlanner::parsePointlist2Plan(const geometry_msgs::msg::Pose
 {
   geometry_msgs::msg::PoseStamped new_goal;
   std::list<Point_t>::const_iterator it, it_next, it_prev;
-  int dx_now, dy_now, dx_next, dy_next, move_dir_now = 0, move_dir_prev = 0, move_dir_next = 0;
+  int dx_now, dy_now, dx_next, dy_next, move_dir_now = 0, move_dir_next = 0;
   bool do_publish = false;
   float orientation = eDirNone;
   RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Received goalpoints with length: %lu", goalpoints.size());
@@ -108,7 +115,6 @@ void FullCoveragePathPlanner::parsePointlist2Plan(const geometry_msgs::msg::Pose
       // Check if this points needs to be published (i.e. a change of direction or first or last point in list)
       do_publish = move_dir_next != move_dir_now || it == goalpoints.begin() ||
                    (it != goalpoints.end() && it == --goalpoints.end());
-      move_dir_prev = move_dir_now;
 
       // Add to vector if required
       if (do_publish)
@@ -135,7 +141,7 @@ void FullCoveragePathPlanner::parsePointlist2Plan(const geometry_msgs::msg::Pose
           orientation = M_PI * 1.5;
           break;
         }
-        new_goal.pose.orientation = tf::createQuaternionMsgFromYaw(orientation);
+        new_goal.pose.orientation = createQuaternionMsgFromYaw(orientation);
         if (it != goalpoints.begin())
         {
           previous_goal_.pose.orientation = new_goal.pose.orientation;
@@ -156,7 +162,7 @@ void FullCoveragePathPlanner::parsePointlist2Plan(const geometry_msgs::msg::Pose
     new_goal.header.frame_id = "map";
     new_goal.pose.position.x = (goalpoints.begin()->x) * tile_size_ + grid_origin_.x + tile_size_ * 0.5;
     new_goal.pose.position.y = (goalpoints.begin()->y) * tile_size_ + grid_origin_.y + tile_size_ * 0.5;
-    new_goal.pose.orientation = tf::createQuaternionMsgFromYaw(0);
+    new_goal.pose.orientation = createQuaternionMsgFromYaw(0);
     plan.push_back(new_goal);
   }
   /* Add poses from current position to start of plan */
@@ -169,7 +175,7 @@ void FullCoveragePathPlanner::parsePointlist2Plan(const geometry_msgs::msg::Pose
   {
     // Add extra translation waypoint
     double yaw = std::atan2(dy, dx);
-    geometry_msgs::msg::Quaternion quat_temp = tf::createQuaternionMsgFromYaw(yaw);
+    geometry_msgs::msg::Quaternion quat_temp = createQuaternionMsgFromYaw(yaw);
     geometry_msgs::msg::PoseStamped extra_pose;
     extra_pose = *plan.begin();
     extra_pose.pose.orientation = quat_temp;
@@ -192,7 +198,7 @@ bool FullCoveragePathPlanner::parseGrid(nav_msgs::msg::OccupancyGrid const& cpp_
                                         geometry_msgs::msg::PoseStamped const& realStart,
                                         Point_t& scaledStart)
 {
-  int ix, iy, nodeRow, nodeColl;
+  uint ix, iy, nodeRow, nodeColl;
   uint32_t nodeSize = dmax(floor(toolRadius / cpp_grid_.info.resolution), 1);  // Size of node in pixels/units
   uint32_t robotNodeSize = dmax(floor(robotRadius / cpp_grid_.info.resolution), 1);  // RobotRadius in pixels/units
   uint32_t nRows = cpp_grid_.info.height, nCols = cpp_grid_.info.width;

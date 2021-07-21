@@ -9,24 +9,25 @@
 #include <vector>
 
 #include "rclcpp/rclcpp.hpp"
-#include <pluginlib/class_list_macros.h>
-#include <costmap_2d/costmap_2d_ros.h>
-#include <costmap_2d/costmap_2d.h>
-#include <nav_core/base_global_planner.h>
-#include <nav_msgs/msg/path.hpp>
+//#include <pluginlib/class_list_macros.h>
+//#include <costmap_2d/costmap_2d_ros.h>
+//#include <costmap_2d/costmap_2d.h>
+//#include <nav_core/base_global_planner.h>
 #include <nav_msgs/srv/get_map.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
+//#include <nav_msgs/srv/get_map.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <angles/angles.h>
-#include <base_local_planner/world_model.h>
-#include <base_local_planner/costmap_model.h>
-#include <tf/tf.h>
+//#include <base_local_planner/world_model.h>
+//#include <base_local_planner/costmap_model.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include "full_coverage_path_planner/common.hpp"
 
 using std::string;
 
-#ifndef FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_H
-#define FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_H
-
-#include "full_coverage_path_planner/common.h"
+#ifndef FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_HPP
+#define FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_HPP
 
 // #define DEBUG_PLOT
 
@@ -61,7 +62,7 @@ public:
    * @brief  Default constructor for the NavFnROS object
    */
   FullCoveragePathPlanner();
-  FullCoveragePathPlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
+  // FullCoveragePathPlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
 
   /**
    * @brief  Publish a path for visualization purposes
@@ -100,8 +101,10 @@ protected:
                  float toolRadius,
                  geometry_msgs::msg::PoseStamped const& realStart,
                  Point_t& scaledStart);
-  ros::Publisher plan_pub_;
-  ros::ServiceClient cpp_grid_client_;
+
+  auto createQuaternionMsgFromYaw(double yaw);
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
+  rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr cpp_grid_client_;
   nav_msgs::msg::OccupancyGrid cpp_grid_;
   float robot_radius_;
   float tool_radius_;
@@ -140,4 +143,4 @@ private:
   Point_t _poi;
 };
 }  // namespace full_coverage_path_planner
-#endif  // FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_H
+#endif  // FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_HPP
