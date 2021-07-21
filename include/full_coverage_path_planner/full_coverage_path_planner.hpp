@@ -66,9 +66,6 @@ public:
   {
   }
 
-  virtual bool makePlan(const geometry_msgs::msg::PoseStamped& start,
-                        const geometry_msgs::msg::PoseStamped& goal, std::vector<geometry_msgs::msg::PoseStamped>& plan) = 0;
-
 protected:
   /**
    * Convert internal representation of a to a ROS path
@@ -95,6 +92,11 @@ protected:
                  geometry_msgs::msg::PoseStamped const& realStart,
                  Point_t& scaledStart);
 
+  /**
+   * Create Quaternion from Yaw
+   * @param yaw orientation
+   * @return Quaternion with desired yaw orientation
+   */
   auto createQuaternionMsgFromYaw(double yaw);
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
   rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr cpp_grid_client_;
