@@ -43,10 +43,10 @@ class CoverageProgressNode(object):
 
         self.grid = self._initialize_map()
 
-        self.progress_pub = rospy.Publisher("coverage_progress", Float32, queue_size=1)
-        self.grid_pub = rospy.Publisher("coverage_grid", OccupancyGrid, queue_size=1)
+        self.progress_pub = node.create_publisher(Float32, queue_size=1, "coverage_progress")
+        self.grid_pub = node.create_publisher(OccupancyGrid, queue_size=1, "coverage_grid")
 
-        self.reset_srv = rospy.Service('reset', Trigger, self.reset)
+        self.reset_srv = node.create_service(Trigger, 'reset', self.reset)
 
         self._rate = rospy.get_param("~rate", 10.0)
         self._update_timer = rospy.Timer(rospy.Duration(1.0/self._rate), self._update_callback)
@@ -148,7 +148,8 @@ class CoverageProgressNode(object):
         return (True, "Reset coverage progress and grid")
 
 if __name__ == '__main__':
-    rospy.init_node('coverage_progress')
+    rclpy.init()
+    node = rclpy.create_node('coverage_progress')
     try:
         node = CoverageProgressNode()
         rospy.spin()

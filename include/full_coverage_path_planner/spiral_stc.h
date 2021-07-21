@@ -5,14 +5,14 @@
 #include <string>
 #include <vector>
 
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 #include <pluginlib/class_list_macros.h>
 #include <costmap_2d/costmap_2d_ros.h>
 #include <costmap_2d/costmap_2d.h>
 #include <nav_core/base_global_planner.h>
-#include <nav_msgs/Path.h>
-#include <nav_msgs/GetMap.h>
-#include <geometry_msgs/PoseStamped.h>
+#include <nav_msgs/msg/path.hpp>
+#include <nav_msgs/srv/get_map.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <angles/angles.h>
 #include <base_local_planner/world_model.h>
 #include <base_local_planner/costmap_model.h>
@@ -60,8 +60,8 @@ private:
    * @param plan The plan... filled by the planner
    * @return True if a valid plan was found, false otherwise
    */
-  bool makePlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal,
-                std::vector<geometry_msgs::PoseStamped> &plan);
+  bool makePlan(const geometry_msgs::msg::PoseStamped &start, const geometry_msgs::msg::PoseStamped &goal,
+                std::vector<geometry_msgs::msg::PoseStamped> &plan);
 
   /**
    * @brief  Initialization function for the FullCoveragePathPlanner object

@@ -36,16 +36,16 @@ FullCoveragePathPlanner::FullCoveragePathPlanner() : initialized_(false)
 {
 }
 
-void FullCoveragePathPlanner::publishPlan(const std::vector<geometry_msgs::PoseStamped>& path)
+void FullCoveragePathPlanner::publishPlan(const std::vector<geometry_msgs::msg::PoseStamped>& path)
 {
   if (!initialized_)
   {
-    ROS_ERROR("This planner has not been initialized yet, but it is being used, please call initialize() before use");
+    RCLCPP_ERROR(rclcpp::get_logger("FullCoveragePathPlanner"), "This planner has not been initialized yet, but it is being used, please call initialize() before use");
     return;
   }
 
   // create a message for the plan
-  nav_msgs::Path gui_path;
+  nav_msgs::msg::Path gui_path;
   gui_path.poses.resize(path.size());
 
   if (!path.empty())
@@ -63,16 +63,16 @@ void FullCoveragePathPlanner::publishPlan(const std::vector<geometry_msgs::PoseS
   plan_pub_.publish(gui_path);
 }
 
-void FullCoveragePathPlanner::parsePointlist2Plan(const geometry_msgs::PoseStamped& start,
+void FullCoveragePathPlanner::parsePointlist2Plan(const geometry_msgs::msg::PoseStamped& start,
     std::list<Point_t> const& goalpoints,
-    std::vector<geometry_msgs::PoseStamped>& plan)
+    std::vector<geometry_msgs::msg::PoseStamped>& plan)
 {
-  geometry_msgs::PoseStamped new_goal;
+  geometry_msgs::msg::PoseStamped new_goal;
   std::list<Point_t>::const_iterator it, it_next, it_prev;
   int dx_now, dy_now, dx_next, dy_next, move_dir_now = 0, move_dir_prev = 0, move_dir_next = 0;
   bool do_publish = false;
   float orientation = eDirNone;
-  ROS_INFO("Received goalpoints with length: %lu", goalpoints.size());
+  RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Received goalpoints with length: %lu", goalpoints.size());
   if (goalpoints.size() > 1)
   {
     for (it = goalpoints.begin(); it != goalpoints.end(); ++it)
@@ -143,7 +143,7 @@ void FullCoveragePathPlanner::parsePointlist2Plan(const geometry_msgs::PoseStamp
           // useful when the plan is strictly followed with base_link
           plan.push_back(previous_goal_);
         }
-        ROS_DEBUG("Voila new point: x=%f, y=%f, o=%f,%f,%f,%f", new_goal.pose.position.x, new_goal.pose.position.y,
+        RCLCPP_DEBUG(rclcpp::get_logger("FullCoveragePathPlanner"), "Voila new point: x=%f, y=%f, o=%f,%f,%f,%f", new_goal.pose.position.x, new_goal.pose.position.y,
                   new_goal.pose.orientation.x, new_goal.pose.orientation.y, new_goal.pose.orientation.z,
                   new_goal.pose.orientation.w);
         plan.push_back(new_goal);
@@ -169,8 +169,8 @@ void FullCoveragePathPlanner::parsePointlist2Plan(const geometry_msgs::PoseStamp
   {
     // Add extra translation waypoint
     double yaw = std::atan2(dy, dx);
-    geometry_msgs::Quaternion quat_temp = tf::createQuaternionMsgFromYaw(yaw);
-    geometry_msgs::PoseStamped extra_pose;
+    geometry_msgs::msg::Quaternion quat_temp = tf::createQuaternionMsgFromYaw(yaw);
+    geometry_msgs::msg::PoseStamped extra_pose;
     extra_pose = *plan.begin();
     extra_pose.pose.orientation = quat_temp;
     plan.insert(plan.begin(), extra_pose);
@@ -182,21 +182,21 @@ void FullCoveragePathPlanner::parsePointlist2Plan(const geometry_msgs::PoseStamp
   // Insert current pose
   plan.insert(plan.begin(), start);
 
-  ROS_INFO("Plan ready containing %lu goals!", plan.size());
+  RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Plan ready containing %lu goals!", plan.size());
 }
 
-bool FullCoveragePathPlanner::parseGrid(nav_msgs::OccupancyGrid const& cpp_grid_,
+bool FullCoveragePathPlanner::parseGrid(nav_msgs::msg::OccupancyGrid const& cpp_grid_,
                                         std::vector<std::vector<bool> >& grid,
                                         float robotRadius,
                                         float toolRadius,
-                                        geometry_msgs::PoseStamped const& realStart,
+                                        geometry_msgs::msg::PoseStamped const& realStart,
                                         Point_t& scaledStart)
 {
   int ix, iy, nodeRow, nodeColl;
   uint32_t nodeSize = dmax(floor(toolRadius / cpp_grid_.info.resolution), 1);  // Size of node in pixels/units
   uint32_t robotNodeSize = dmax(floor(robotRadius / cpp_grid_.info.resolution), 1);  // RobotRadius in pixels/units
   uint32_t nRows = cpp_grid_.info.height, nCols = cpp_grid_.info.width;
-  ROS_INFO("nRows: %u nCols: %u nodeSize: %d", nRows, nCols, nodeSize);
+  RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "nRows: %u nCols: %u nodeSize: %d", nRows, nCols, nodeSize);
 
   if (nRows == 0 || nCols == 0)
   {

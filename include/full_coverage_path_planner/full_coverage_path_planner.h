@@ -8,14 +8,14 @@
 #include <string>
 #include <vector>
 
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 #include <pluginlib/class_list_macros.h>
 #include <costmap_2d/costmap_2d_ros.h>
 #include <costmap_2d/costmap_2d.h>
 #include <nav_core/base_global_planner.h>
-#include <nav_msgs/Path.h>
-#include <nav_msgs/GetMap.h>
-#include <geometry_msgs/PoseStamped.h>
+#include <nav_msgs/msg/path.hpp>
+#include <nav_msgs/srv/get_map.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <angles/angles.h>
 #include <base_local_planner/world_model.h>
 #include <base_local_planner/costmap_model.h>
@@ -66,14 +66,14 @@ public:
   /**
    * @brief  Publish a path for visualization purposes
    */
-  void publishPlan(const std::vector<geometry_msgs::PoseStamped>& path);
+  void publishPlan(const std::vector<geometry_msgs::msg::PoseStamped>& path);
 
   ~FullCoveragePathPlanner()
   {
   }
 
-  virtual bool makePlan(const geometry_msgs::PoseStamped& start,
-                        const geometry_msgs::PoseStamped& goal, std::vector<geometry_msgs::PoseStamped>& plan) = 0;
+  virtual bool makePlan(const geometry_msgs::msg::PoseStamped& start,
+                        const geometry_msgs::msg::PoseStamped& goal, std::vector<geometry_msgs::msg::PoseStamped>& plan) = 0;
 
 protected:
   /**
@@ -82,8 +82,8 @@ protected:
    * @param goalpoints Goal points from Spiral Algorithm
    * @param plan  Output plan variable
    */
-  void parsePointlist2Plan(const geometry_msgs::PoseStamped& start, std::list<Point_t> const& goalpoints,
-                           std::vector<geometry_msgs::PoseStamped>& plan);
+  void parsePointlist2Plan(const geometry_msgs::msg::PoseStamped& start, std::list<Point_t> const& goalpoints,
+                           std::vector<geometry_msgs::msg::PoseStamped>& plan);
 
   /**
    * Convert ROS Occupancy grid to internal grid representation, given the size of a single tile
@@ -94,22 +94,22 @@ protected:
    * @param scaledStart Start position of the robot on the grid
    * @return success
    */
-  bool parseGrid(nav_msgs::OccupancyGrid const& cpp_grid_,
+  bool parseGrid(nav_msgs::msg::OccupancyGrid const& cpp_grid_,
                  std::vector<std::vector<bool> >& grid,
                  float robotRadius,
                  float toolRadius,
-                 geometry_msgs::PoseStamped const& realStart,
+                 geometry_msgs::msg::PoseStamped const& realStart,
                  Point_t& scaledStart);
   ros::Publisher plan_pub_;
   ros::ServiceClient cpp_grid_client_;
-  nav_msgs::OccupancyGrid cpp_grid_;
+  nav_msgs::msg::OccupancyGrid cpp_grid_;
   float robot_radius_;
   float tool_radius_;
   float plan_resolution_;
   float tile_size_;
   fPoint_t grid_origin_;
   bool initialized_;
-  geometry_msgs::PoseStamped previous_goal_;
+  geometry_msgs::msg::PoseStamped previous_goal_;
 
   struct spiral_cpp_metrics_type
   {
