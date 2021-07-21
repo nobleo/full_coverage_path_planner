@@ -8,21 +8,14 @@
 #include <string>
 #include <vector>
 
-#include "rclcpp/rclcpp.hpp"
-//#include <pluginlib/class_list_macros.h>
-//#include <costmap_2d/costmap_2d_ros.h>
-//#include <costmap_2d/costmap_2d.h>
-//#include <nav_core/base_global_planner.h>
-#include <nav_msgs/srv/get_map.hpp>
-#include <nav_msgs/msg/path.hpp>
-#include <nav_msgs/msg/occupancy_grid.hpp>
-//#include <nav_msgs/srv/get_map.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <angles/angles.h>
-//#include <base_local_planner/world_model.h>
-//#include <base_local_planner/costmap_model.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include "full_coverage_path_planner/common.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include <angles/angles.h>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <nav_msgs/srv/get_map.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using std::string;
 
