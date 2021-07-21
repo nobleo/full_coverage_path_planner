@@ -21,7 +21,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 
 #include <full_coverage_path_planner/common.h>
 #include <full_coverage_path_planner/spiral_stc.h>

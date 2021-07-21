@@ -12,7 +12,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 
 #include <full_coverage_path_planner/common.h>
 #include <full_coverage_path_planner/util.h>
