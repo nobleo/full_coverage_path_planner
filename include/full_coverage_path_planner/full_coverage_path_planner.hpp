@@ -68,7 +68,7 @@ public:
 
 protected:
   /**
-   * Convert internal representation of a to a ROS path
+   * @brief Convert internal representation of a to a ROS path
    * @param start Start pose of robot
    * @param goalpoints Goal points from Spiral Algorithm
    * @param plan  Output plan variable
@@ -77,7 +77,7 @@ protected:
                            std::vector<geometry_msgs::msg::PoseStamped>& plan);
 
   /**
-   * Convert ROS Occupancy grid to internal grid representation, given the size of a single tile
+   * @brief Convert ROS Occupancy grid to internal grid representation, given the size of a single tile
    * @param cpp_grid_ ROS occupancy grid representation. Cells higher that 65 are considered occupied
    * @param grid internal map representation
    * @param tileSize size (in meters) of a cell. This can be the robot's size
@@ -93,11 +93,12 @@ protected:
                  Point_t& scaledStart);
 
   /**
-   * Create Quaternion from Yaw
+   * @brief Create Quaternion from Yaw
    * @param yaw orientation
    * @return Quaternion with desired yaw orientation
    */
   auto createQuaternionMsgFromYaw(double yaw);
+  std::shared_ptr<rclcpp::Node> node_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
   rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr cpp_grid_client_;
   nav_msgs::msg::OccupancyGrid cpp_grid_;

@@ -35,7 +35,7 @@ find_package(tf2_ros REQUIRED)
 add_library(${PROJECT_NAME}
   src/common.cpp
   src/${PROJECT_NAME}.cpp
-#  src/spiral_stc.cpp
+  src/spiral_stc.cpp
 )
 
 ################################################################################
