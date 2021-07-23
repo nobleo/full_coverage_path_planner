@@ -45,27 +45,64 @@ std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool> > const& g
   // Copy incoming list to 'end'
   std::list<gridNode_t> pathNodes(init);  
 
-  // set initial direction towards longest side
-  int robot_dir = point;
+  // this array stores how far the robot can travel in a straight line for each direction
+  int free_space_in_dir[5] = {0};
+  // for each direction
+  for (int i = 1; i < 5; i++) {
+    // start from starting pos
+    x2 = pathNodes.back().pos.x;
+    y2 = pathNodes.back().pos.y;
+    // loop until hits wall
+    while (validMove(x2, y2, nCols, nRows, grid, visited)) {
+      switch (i) {
+        case east:
+          x2++;
+          break;
+        case west:
+          x2--;
+          break;
+        case north:
+          y2++;
+          break;
+        case south:
+          y2--;
+          break;
+        default:
+          break;
+      }
+      free_space_in_dir[i]++;
+    }
+  }
+  // set initial direction towards direction with most travel possible
+  int robot_dir = 0;
   int pattern_dir = point;
-  if (nRows >= nCols) {
-    if (pathNodes.back().pos.y < nRows / 2) {
-      robot_dir = north;
-      dy = 1;
-    }
-    else {
-      robot_dir = south;
-      dy = -1;
-    }
-  } else {
-    if (pathNodes.back().pos.x < nCols / 2) {
-      robot_dir = east;
-      dx = 1;
-    }
-    else {
-      robot_dir = west;
+  int indexValue = 0;
+  for (int i = 1; i <= 4; i++) {
+      if (free_space_in_dir[i] > indexValue) {
+          robot_dir = i;
+          indexValue = free_space_in_dir[i];
+      }
+  }
+  // set dx and dy based on robot_dir
+  switch(robot_dir) {
+    case east: // 1
+      dx = +1;
+      dy = 0;
+      break;
+    case west: // 2
       dx = -1;
-    }
+      dy = 0;
+      break;
+    case north: // 3
+      dx = 0;
+      dy = +1;
+      break;
+    case south: // 4
+      dx = 0;
+      dy = -1;
+      break;
+    default:
+      break;
   }
 
   bool done = false;
