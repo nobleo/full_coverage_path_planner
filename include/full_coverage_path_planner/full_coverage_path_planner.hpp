@@ -15,6 +15,8 @@
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <nav_msgs/srv/get_map.hpp>
+#include <nav2_costmap_2d/costmap_2d_ros.hpp>
+#include <nav2_util/node_utils.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using std::string;
@@ -62,7 +64,9 @@ namespace full_coverage_path_planner
      */
     void publishPlan(const std::vector<geometry_msgs::msg::PoseStamped> &path);
 
-    ~FullCoveragePathPlanner();
+    ~FullCoveragePathPlanner()
+    {
+    }
 
   protected:
     /**
@@ -96,7 +100,7 @@ namespace full_coverage_path_planner
      * @return Quaternion with desired yaw orientation
      */
     auto createQuaternionMsgFromYaw(double yaw);
-    std::shared_ptr<rclcpp::Node> node_;
+    nav2_util::LifecycleNode::SharedPtr node_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
     rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr cpp_grid_client_;
     nav_msgs::msg::OccupancyGrid cpp_grid_;
@@ -107,6 +111,8 @@ namespace full_coverage_path_planner
     fPoint_t grid_origin_;
     bool initialized_;
     geometry_msgs::msg::PoseStamped previous_goal_;
+    std::string name_, global_frame_;
+    nav2_costmap_2d::Costmap2D * costmap_;
 
     struct spiral_cpp_metrics_type
     {

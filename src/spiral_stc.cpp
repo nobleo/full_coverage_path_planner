@@ -12,12 +12,25 @@
 using nav2_util::declare_parameter_if_not_declared;
 namespace full_coverage_path_planner
 {
-  void SpiralSTC::initialize(std::string name, nav2_costmap_2d::Costmap2DROS *costmap_ros)
+
+  void SpiralSTC::configure(
+      const rclcpp_lifecycle::LifecycleNode::WeakPtr &parent,
+      std::string name, std::shared_ptr<tf2_ros::Buffer> tf,
+      std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
   {
     if (!initialized_)
     {
-      // For now use local node. Later use parent node as in plugin example
-      node_ = rclcpp::Node::make_shared("name");
+      // Get node from parent
+      node_ = parent.lock();
+      name_ = name;
+
+      // Currently this plugin does not use the costmap, instead request a map from a server
+      // This will change in the future
+      costmap_ = costmap_ros->getCostmap();
+      global_frame_ = costmap_ros->getGlobalFrameID();
+
+      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"),
+                  "Configuring plugin %s of type NavfnPlanner", name_.c_str());
 
       // Create a publisher to visualize the plan
       plan_pub_ = node_->create_publisher<nav_msgs::msg::Path>("plan", 1);
@@ -26,16 +39,56 @@ namespace full_coverage_path_planner
 
       // Define  robot radius (radius) parameter
       float robot_radius_default = 0.5f;
-      declare_parameter_if_not_declared(node_, name + ".robot_radius", rclcpp::ParameterValue(robot_radius_default));
-      node_->get_parameter(name + ".robot_radius", robot_radius_);
+      declare_parameter_if_not_declared(node_, name_ + ".robot_radius", rclcpp::ParameterValue(robot_radius_default));
+      node_->get_parameter(name_ + ".robot_radius", robot_radius_);
       // Define  tool radius (radius) parameter
       float tool_radius_default = 0.5f;
-      declare_parameter_if_not_declared(node_, name + ".tool_radius", rclcpp::ParameterValue(tool_radius_default));
-      node_->get_parameter(name + ".tool_radius", tool_radius_);
+      declare_parameter_if_not_declared(node_, name_ + ".tool_radius", rclcpp::ParameterValue(tool_radius_default));
+      node_->get_parameter(name_ + ".tool_radius", tool_radius_);
       initialized_ = true;
     }
   }
 
+  void SpiralSTC::activate()
+  {
+    RCLCPP_INFO(
+      rclcpp::get_logger("FullCoveragePathPlanner"), "Activating plugin %s of type FullCoveragePathPlanner",
+      name_.c_str());
+  }
+
+  void SpiralSTC::deactivate()
+  {
+    RCLCPP_INFO(
+      rclcpp::get_logger("FullCoveragePathPlanner"), "Deactivating plugin %s of type FullCoveragePathPlanner",
+      name_.c_str());
+  }
+
+  void SpiralSTC::cleanup()
+  {
+    RCLCPP_INFO(
+      rclcpp::get_logger("FullCoveragePathPlanner"), "Cleaning up plugin %s of type FullCoveragePathPlanner",
+      name_.c_str());
+    // TODO(clopez) Add proper cleanup
+  }
+
+  nav_msgs::msg::Path SpiralSTC::createPlan(
+    const geometry_msgs::msg::PoseStamped & start,
+    const geometry_msgs::msg::PoseStamped & goal)
+  {
+    nav_msgs::msg::Path global_path;
+    std::vector<geometry_msgs::msg::PoseStamped> plan;
+
+    SpiralSTC::makePlan(start, goal, plan);
+
+    global_path.poses.clear();
+    global_path.header.stamp = node_->now();
+    global_path.header.frame_id = global_frame_;
+    for (auto pose : plan)
+    {
+      global_path.poses.push_back(pose);
+    }
+    return global_path;
+  }
   std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool>> const &grid, std::list<gridNode_t> &init,
                                           std::vector<std::vector<bool>> &visited)
   {
@@ -297,5 +350,5 @@ namespace full_coverage_path_planner
 } // namespace full_coverage_path_planner
 
 // register this planner as a nav2_core::GlobalPlanner plugin
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(full_coverage_path_planner::SpiralSTC, nav2_core::GlobalPlanner)
