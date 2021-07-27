@@ -85,17 +85,8 @@ namespace full_coverage_path_planner
     const geometry_msgs::msg::PoseStamped & goal)
   {
     nav_msgs::msg::Path global_path;
-    std::vector<geometry_msgs::msg::PoseStamped> plan;
+    SpiralSTC::makePlan(start, goal, global_path.poses);
 
-    SpiralSTC::makePlan(start, goal, plan);
-
-    global_path.poses.clear();
-    global_path.header.stamp = node_->now();
-    global_path.header.frame_id = global_frame_;
-    for (auto pose : plan)
-    {
-      global_path.poses.push_back(pose);
-    }
     return global_path;
   }
   std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool>> const &grid, std::list<gridNode_t> &init,
