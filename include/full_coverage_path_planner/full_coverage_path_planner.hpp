@@ -3,6 +3,8 @@
 //
 /** include the libraries you need in your planner here */
 /** for global path planner interface */
+#pragma once
+
 #include <fstream>
 #include <list>
 #include <string>
@@ -18,9 +20,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using std::string;
-
-#ifndef FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_HPP
-#define FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_HPP
 
 // #define DEBUG_PLOT
 
@@ -139,4 +138,3 @@ private:
   Point_t _poi;
 };
 }  // namespace full_coverage_path_planner
-#endif  // FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_HPP
