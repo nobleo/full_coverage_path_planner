@@ -191,7 +191,7 @@ namespace full_coverage_path_planner
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Plan ready containing %lu goals!", plan.size());
   }
 
-  bool FullCoveragePathPlanner::parseGrid(nav_msgs::msg::OccupancyGrid const &cpp_grid_,
+  bool FullCoveragePathPlanner::parseGrid(nav2_costmap_2d::Costmap2D const * cpp_costmap,
                                           std::vector<std::vector<bool>> &grid,
                                           float robotRadius,
                                           float toolRadius,
@@ -199,9 +199,10 @@ namespace full_coverage_path_planner
                                           Point_t &scaledStart)
   {
     uint ix, iy, nodeRow, nodeColl;
-    uint32_t nodeSize = dmax(floor(toolRadius / cpp_grid_.info.resolution), 1);       // Size of node in pixels/units
-    uint32_t robotNodeSize = dmax(floor(robotRadius / cpp_grid_.info.resolution), 1); // RobotRadius in pixels/units
-    uint32_t nRows = cpp_grid_.info.height, nCols = cpp_grid_.info.width;
+    uint32_t nodeSize = dmax(floor(toolRadius / cpp_costmap->getResolution()), 1);       // Size of node in pixels/units
+    uint32_t robotNodeSize = dmax(floor(robotRadius / cpp_costmap->getResolution()), 1); // RobotRadius in pixels/units
+    uint32_t nRows = cpp_costmap->getSizeInCellsY(), nCols = cpp_costmap->getSizeInCellsX();
+    unsigned char * cpp_costmap_data = cpp_costmap->getCharMap();
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "nRows: %u nCols: %u nodeSize: %d", nRows, nCols, nodeSize);
 
     if (nRows == 0 || nCols == 0)
@@ -210,15 +211,18 @@ namespace full_coverage_path_planner
     }
 
     // Save map origin and scaling
-    tile_size_ = nodeSize * cpp_grid_.info.resolution; // Size of a tile in meters
-    grid_origin_.x = cpp_grid_.info.origin.position.x; // x-origin in meters
-    grid_origin_.y = cpp_grid_.info.origin.position.y; // y-origin in meters
+    tile_size_ = nodeSize * cpp_costmap->getResolution(); // Size of a tile in meters
+    double originX, originY;
+    cpp_costmap->mapToWorld(0, 0, originX, originY);
+    grid_origin_.x = originX;
+    grid_origin_.y = originY;
+
 
     // Scale starting point
     scaledStart.x = static_cast<unsigned int>(clamp((realStart.pose.position.x - grid_origin_.x) / tile_size_, 0.0,
-                                                    floor(cpp_grid_.info.width / tile_size_)));
+                                                    floor(cpp_costmap->getSizeInCellsX() / tile_size_)));
     scaledStart.y = static_cast<unsigned int>(clamp((realStart.pose.position.y - grid_origin_.y) / tile_size_, 0.0,
-                                                    floor(cpp_grid_.info.height / tile_size_)));
+                                                    floor(cpp_costmap->getSizeInCellsY() / tile_size_)));
 
     // Scale grid
     for (iy = 0; iy < nRows; iy = iy + nodeSize)
@@ -232,7 +236,7 @@ namespace full_coverage_path_planner
           for (nodeColl = 0; (nodeColl < robotNodeSize) && ((ix + nodeColl) < nCols); ++nodeColl)
           {
             int index_grid = dmax((iy + nodeRow - ceil(static_cast<float>(robotNodeSize - nodeSize) / 2.0)) * nCols + (ix + nodeColl - ceil(static_cast<float>(robotNodeSize - nodeSize) / 2.0)), 0);
-            if (cpp_grid_.data[index_grid] > 65)
+            if (cpp_costmap_data[index_grid] > 65)
             {
               nodeOccupied = true;
               break;
