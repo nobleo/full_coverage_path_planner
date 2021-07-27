@@ -12,6 +12,15 @@
 using nav2_util::declare_parameter_if_not_declared;
 namespace full_coverage_path_planner
 {
+  SpiralSTC::SpiralSTC()
+  {
+  }
+
+  SpiralSTC::~SpiralSTC()
+  {
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Destroying plugin %s of type FullCoveragePathPlanner",
+      name_.c_str());
+  }
 
   void SpiralSTC::configure(
       const rclcpp_lifecycle::LifecycleNode::WeakPtr &parent,
@@ -35,7 +44,7 @@ namespace full_coverage_path_planner
       // Create a publisher to visualize the plan
       plan_pub_ = node_->create_publisher<nav_msgs::msg::Path>("plan", 1);
       // Try to request the cpp-grid from the cpp_grid map_server
-      cpp_grid_client_ = node_->create_client<nav_msgs::srv::GetMap>("static_map");
+      cpp_grid_client_ = node_->create_client<nav_msgs::srv::GetMap>("/map_server/map");
 
       // Define  robot radius (radius) parameter
       float robot_radius_default = 0.5f;
@@ -300,7 +309,7 @@ namespace full_coverage_path_planner
     if (rclcpp::spin_until_future_complete(node_, result) !=
         rclcpp::FutureReturnCode::SUCCESS)
     {
-      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service get_map");
+      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service GetMap");
     }
 
     std::vector<std::vector<bool>> grid;
