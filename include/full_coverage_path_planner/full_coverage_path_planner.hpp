@@ -3,6 +3,8 @@
 //
 /** include the libraries you need in your planner here */
 /** for global path planner interface */
+#pragma once
+
 #include <fstream>
 #include <list>
 #include <string>
@@ -20,9 +22,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using std::string;
-
-#ifndef FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_HPP
-#define FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_HPP
 
 // #define DEBUG_PLOT
 
@@ -99,7 +98,13 @@ namespace full_coverage_path_planner
      * @param yaw orientation
      * @return Quaternion with desired yaw orientation
      */
-    auto createQuaternionMsgFromYaw(double yaw);
+
+    auto createQuaternionMsgFromYaw(double yaw)
+    {
+      tf2::Quaternion q;
+      q.setRPY(0, 0, yaw);
+      return tf2::toMsg(q);
+    }
     nav2_util::LifecycleNode::SharedPtr node_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
     float robot_radius_;
@@ -140,4 +145,3 @@ namespace full_coverage_path_planner
     Point_t _poi;
   };
 } // namespace full_coverage_path_planner
-#endif // FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_HPP

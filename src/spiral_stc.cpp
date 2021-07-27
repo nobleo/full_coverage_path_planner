@@ -85,6 +85,9 @@ namespace full_coverage_path_planner
     nav_msgs::msg::Path global_path;
     SpiralSTC::makePlan(start, goal, global_path.poses);
 
+    global_path.header.stamp = node_->now();
+    global_path.header.frame_id = global_frame_;
+
     return global_path;
   }
   std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool>> const &grid, std::list<gridNode_t> &init,

@@ -1,6 +1,8 @@
 //
 // Copyright [2020] Nobleo Technology"  [legal/copyright]
 //
+#pragma once
+
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
@@ -24,10 +26,6 @@
 
 using namespace std::chrono_literals;
 using std::string;
-
-#ifndef FULL_COVERAGE_PATH_PLANNER_SPIRAL_STC_HPP
-#define FULL_COVERAGE_PATH_PLANNER_SPIRAL_STC_HPP
-
 namespace full_coverage_path_planner
 {
   class SpiralSTC : public nav2_core::GlobalPlanner , private full_coverage_path_planner::FullCoveragePathPlanner
@@ -122,5 +120,4 @@ namespace full_coverage_path_planner
                                          int &visited_counter);
   };
 
-} // namespace full_coverage_path_planner
-#endif // FULL_COVERAGE_PATH_PLANNER_SPIRAL_STC_HPP
+}  // namespace full_coverage_path_planner
