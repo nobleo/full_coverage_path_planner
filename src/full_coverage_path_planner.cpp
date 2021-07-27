@@ -198,12 +198,16 @@ namespace full_coverage_path_planner
                                           geometry_msgs::msg::PoseStamped const &realStart,
                                           Point_t &scaledStart)
   {
-    uint ix, iy, nodeRow, nodeColl;
-    uint32_t nodeSize = dmax(floor(toolRadius / cpp_costmap->getResolution()), 1);       // Size of node in pixels/units
-    uint32_t robotNodeSize = dmax(floor(robotRadius / cpp_costmap->getResolution()), 1); // RobotRadius in pixels/units
-    uint32_t nRows = cpp_costmap->getSizeInCellsY(), nCols = cpp_costmap->getSizeInCellsX();
+    size_t ix;
+    size_t iy;
+    size_t nodeRow;
+    size_t nodeColl;
+    size_t nodeSize = dmax(floor(toolRadius / cpp_costmap->getResolution()), 1);       // Size of node in pixels/units
+    size_t robotNodeSize = dmax(floor(robotRadius / cpp_costmap->getResolution()), 1); // RobotRadius in pixels/units
+    size_t nRows = cpp_costmap->getSizeInCellsY();
+    size_t nCols = cpp_costmap->getSizeInCellsX();
     unsigned char * cpp_costmap_data = cpp_costmap->getCharMap();
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "nRows: %u nCols: %u nodeSize: %d", nRows, nCols, nodeSize);
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "nRows: %lu nCols: %lu nodeSize: %lu", nRows, nCols, nodeSize);
 
     if (nRows == 0 || nCols == 0)
     {
