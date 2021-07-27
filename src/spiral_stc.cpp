@@ -47,11 +47,11 @@ namespace full_coverage_path_planner
       cpp_grid_client_ = node_->create_client<nav_msgs::srv::GetMap>("/map_server/map");
 
       // Define  robot radius (radius) parameter
-      float robot_radius_default = 0.5f;
+      double robot_radius_default = 0.5;
       declare_parameter_if_not_declared(node_, name_ + ".robot_radius", rclcpp::ParameterValue(robot_radius_default));
       node_->get_parameter(name_ + ".robot_radius", robot_radius_);
       // Define  tool radius (radius) parameter
-      float tool_radius_default = 0.5f;
+      double tool_radius_default = 0.5;
       declare_parameter_if_not_declared(node_, name_ + ".tool_radius", rclcpp::ParameterValue(tool_radius_default));
       node_->get_parameter(name_ + ".tool_radius", tool_radius_);
       initialized_ = true;
