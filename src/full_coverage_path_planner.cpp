@@ -215,13 +215,8 @@ namespace full_coverage_path_planner
     }
 
     // Save map origin and scaling
+    cpp_costmap->mapToWorld(0, 0, grid_origin_.x, grid_origin_.y);
     tile_size_ = nodeSize * cpp_costmap->getResolution(); // Size of a tile in meters
-    double originX, originY;
-    cpp_costmap->mapToWorld(0, 0, originX, originY);
-    grid_origin_.x = originX;
-    grid_origin_.y = originY;
-
-
     // Scale starting point
     scaledStart.x = static_cast<unsigned int>(clamp((realStart.pose.position.x - grid_origin_.x) / tile_size_, 0.0,
                                                     floor(cpp_costmap->getSizeInCellsX() / tile_size_)));
