@@ -43,8 +43,6 @@ namespace full_coverage_path_planner
 
       // Create a publisher to visualize the plan
       plan_pub_ = node_->create_publisher<nav_msgs::msg::Path>("plan", 1);
-      // Try to request the cpp-grid from the cpp_grid map_server
-      cpp_grid_client_ = node_->create_client<nav_msgs::srv::GetMap>("/map_server/map");
 
       // Define  robot radius (radius) parameter
       double robot_radius_default = 0.5;
@@ -279,32 +277,8 @@ namespace full_coverage_path_planner
     clock_t begin = clock();
     Point_t startPoint;
 
-    /********************** Wait for server **********************/
-    while (!cpp_grid_client_->wait_for_service(1s))
-    {
-      if (!rclcpp::ok())
-      {
-        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
-        return false;
-      }
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service not available, waiting again...");
-    }
-
-    /********************** Get grid from server **********************/
-
-    auto request = std::make_shared<nav_msgs::srv::GetMap::Request>();
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Requesting grid!!");
-
-    auto result = cpp_grid_client_->async_send_request(request);
-    // Wait for the result.
-    if (rclcpp::spin_until_future_complete(node_, result) !=
-        rclcpp::FutureReturnCode::SUCCESS)
-    {
-      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service GetMap");
-    }
-
     std::vector<std::vector<bool>> grid;
-    if (!parseGrid(result.get()->map, grid, robot_radius_ * 2, tool_radius_ * 2, start, startPoint))
+    if (!parseGrid(costmap_, grid, robot_radius_ * 2, tool_radius_ * 2, start, startPoint))
     {
       RCLCPP_ERROR(rclcpp::get_logger("FullCoveragePathPlanner"), "Could not parse retrieved grid");
       return false;

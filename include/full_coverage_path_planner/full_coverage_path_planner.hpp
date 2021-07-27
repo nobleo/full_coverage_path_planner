@@ -87,7 +87,7 @@ namespace full_coverage_path_planner
      * @param scaledStart Start position of the robot on the grid
      * @return success
      */
-    bool parseGrid(nav_msgs::msg::OccupancyGrid const &cpp_grid_,
+    bool parseGrid(nav2_costmap_2d::Costmap2D const * cpp_costmap,
                    std::vector<std::vector<bool>> &grid,
                    float robotRadius,
                    float toolRadius,
@@ -102,13 +102,11 @@ namespace full_coverage_path_planner
     auto createQuaternionMsgFromYaw(double yaw);
     nav2_util::LifecycleNode::SharedPtr node_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
-    rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr cpp_grid_client_;
-    nav_msgs::msg::OccupancyGrid cpp_grid_;
     float robot_radius_;
     float tool_radius_;
     float plan_resolution_;
     float tile_size_;
-    fPoint_t grid_origin_;
+    dPoint_t grid_origin_;
     bool initialized_;
     geometry_msgs::msg::PoseStamped previous_goal_;
     std::string name_, global_frame_;
