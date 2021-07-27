@@ -3,13 +3,12 @@
 //
 // Created by nobleo on 6-9-18.
 //
+#pragma once
+
 #include <climits>
 #include <fstream>
 #include <list>
 #include <vector>
-
-#ifndef FULL_COVERAGE_PATH_PLANNER_COMMON_H
-#define FULL_COVERAGE_PATH_PLANNER_COMMON_H
 
 typedef struct
 {
@@ -102,13 +101,11 @@ void printGrid(std::vector<std::vector<bool> > const& grid,
  * Print a grid according to the internal representation
  * @param grid
  * @param visited
- * @param fullPath
  * @param start
  * @param end
  */
 void printGrid(std::vector<std::vector<bool> > const& grid,
                std::vector<std::vector<bool> > const& visited,
-               std::list<gridNode_t> const& path,
                gridNode_t start,
                gridNode_t end);
 
@@ -124,4 +121,3 @@ void printGrid(std::vector<std::vector<bool> > const& grid);
  * @return a list of points that have the given value_to_search
  */
 std::list<Point_t> map_2_goals(std::vector<std::vector<bool> > const& grid, bool value_to_search);
-#endif  // FULL_COVERAGE_PATH_PLANNER_COMMON_H

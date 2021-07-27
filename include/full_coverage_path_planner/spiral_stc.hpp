@@ -1,34 +1,56 @@
 //
 // Copyright [2020] Nobleo Technology"  [legal/copyright]
 //
+#pragma once
+
+#include <chrono>
+#include <cstdlib>
+#include <fstream>
 #include <list>
+#include <memory>
 #include <string>
 #include <vector>
 
+// #include <pluginlib/class_list_macros.h>
+#include "full_coverage_path_planner/full_coverage_path_planner.hpp"
+#include "nav2_core/global_planner.hpp"
+#include "nav2_costmap_2d/costmap_2d_ros.hpp"
+#include "nav2_util/lifecycle_node.hpp"
+#include "nav2_util/node_utils.hpp"
+#include "nav2_util/robot_utils.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include <pluginlib/class_list_macros.h>
-#include <costmap_2d/costmap_2d_ros.h>
-#include <costmap_2d/costmap_2d.h>
-#include <nav_core/base_global_planner.h>
+#include <angles/angles.h>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <nav_msgs/srv/get_map.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <angles/angles.h>
-#include <base_local_planner/world_model.h>
-#include <base_local_planner/costmap_model.h>
-#include <fstream>
 
+using namespace std::chrono_literals;
 using std::string;
-
-#ifndef FULL_COVERAGE_PATH_PLANNER_SPIRAL_STC_H
-#define FULL_COVERAGE_PATH_PLANNER_SPIRAL_STC_H
-
-#include "full_coverage_path_planner/full_coverage_path_planner.h"
 namespace full_coverage_path_planner
 {
-class SpiralSTC : public nav_core::BaseGlobalPlanner, private full_coverage_path_planner::FullCoveragePathPlanner
+class SpiralSTC : private full_coverage_path_planner::FullCoveragePathPlanner
 {
 public:
+
+
+protected:
+  /**
+   * @brief Given a goal pose in the world, compute a plan
+   * @param start The start pose
+   * @param goal The goal pose
+   * @param plan The plan... filled by the planner
+   * @return True if a valid plan was found, false otherwise
+   */
+  bool makePlan(const geometry_msgs::msg::PoseStamped &start, const geometry_msgs::msg::PoseStamped &goal,
+                std::vector<geometry_msgs::msg::PoseStamped> &plan);
+
+  /**
+   * @brief  Initialization function for the FullCoveragePathPlanner object
+   * @param  name The name of this planner
+   * @param  costmap A pointer to the ROS wrapper of the costmap to use for planning
+   */
+  void initialize(std::string name, nav2_costmap_2d::Costmap2DROS* costmap_ros);
+
   /**
    * Find a path that spirals inwards from init until an obstacle is seen in the grid
    * @param grid 2D grid of bools. true == occupied/blocked/obstacle
@@ -51,25 +73,6 @@ public:
                                         Point_t &init,
                                         int &multiple_pass_counter,
                                         int &visited_counter);
-
-private:
-  /**
-   * @brief Given a goal pose in the world, compute a plan
-   * @param start The start pose
-   * @param goal The goal pose
-   * @param plan The plan... filled by the planner
-   * @return True if a valid plan was found, false otherwise
-   */
-  bool makePlan(const geometry_msgs::msg::PoseStamped &start, const geometry_msgs::msg::PoseStamped &goal,
-                std::vector<geometry_msgs::msg::PoseStamped> &plan);
-
-  /**
-   * @brief  Initialization function for the FullCoveragePathPlanner object
-   * @param  name The name of this planner
-   * @param  costmap A pointer to the ROS wrapper of the costmap to use for planning
-   */
-  void initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
 };
 
 }  // namespace full_coverage_path_planner
-#endif  // FULL_COVERAGE_PATH_PLANNER_SPIRAL_STC_H

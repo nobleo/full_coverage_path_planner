@@ -7,7 +7,7 @@
 #include <list>
 #include <vector>
 
-#include <full_coverage_path_planner/common.h>
+#include <full_coverage_path_planner/common.hpp>
 
 int distanceToClosestPoint(Point_t poi, std::list<Point_t> const& goals)
 {
@@ -62,7 +62,7 @@ bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_
                           std::vector<std::vector<bool> > &visited, std::list<Point_t> const &open_space,
                           std::list<gridNode_t> &pathNodes)
 {
-  uint dx, dy, dx_prev, nRows = grid.size(), nCols = grid[0].size();
+  int dx, dy, dx_prev, nRows = grid.size(), nCols = grid[0].size();
 
   std::vector<std::vector<bool> > closed(nRows, std::vector<bool>(nCols, eNodeOpen));
   // All nodes in the closest list are currently still open
@@ -133,7 +133,7 @@ bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_
         }
 
         // For all nodes surrounding the end of the end of the path nn
-        for (uint i = 0; i < 4; ++i)
+        for (int i = 0; i < 4; ++i)
         {
           Point_t p2 =
           {
@@ -204,9 +204,9 @@ bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_
 void printGrid(std::vector<std::vector<bool> > const& grid, std::vector<std::vector<bool> > const& visited,
                std::list<Point_t> const& path)
 {
-  for (uint iy = grid.size() - 1; iy >= 0; --iy)
+  for (int iy = (int) grid.size() - 1; iy >= 0; --iy)
   {
-    for (uint ix = 0; ix < grid[0].size(); ++ix)
+    for (int ix = 0; ix < (int) grid[0].size(); ++ix)
     {
       if (visited[iy][ix])
       {
@@ -237,11 +237,11 @@ void printGrid(std::vector<std::vector<bool> > const& grid, std::vector<std::vec
 }
 
 void printGrid(std::vector<std::vector<bool> > const& grid, std::vector<std::vector<bool> > const& visited,
-               std::list<gridNode_t> const& path, gridNode_t start, gridNode_t end)
+               gridNode_t start, gridNode_t end)
 {
-  for (uint iy = grid.size() - 1; iy >= 0; --iy)
+  for (int iy = (int) grid.size() - 1; iy >= 0; --iy)
   {
-    for (uint ix = 0; ix < grid[0].size(); ++ix)
+    for (int ix = 0; ix < (int) grid[0].size(); ++ix)
     {
       if (visited[iy][ix])
       {
@@ -273,9 +273,9 @@ void printGrid(std::vector<std::vector<bool> > const& grid, std::vector<std::vec
 
 void printGrid(std::vector<std::vector<bool> > const& grid)
 {
-  for (uint iy = grid.size() - 1; iy >= 0; --iy)
+  for (int iy = (int) grid.size() - 1; iy >= 0; --iy)
   {
-    for (uint ix = 0; ix < grid[0].size(); ++ix)
+    for (int ix = 0; ix < (int) grid[0].size(); ++ix)
     {
       if (grid[iy][ix])
       {
@@ -294,8 +294,8 @@ std::list<Point_t> map_2_goals(std::vector<std::vector<bool> > const& grid, bool
 {
   std::list<Point_t> goals;
   int ix, iy;
-  uint nRows = grid.size();
-  uint nCols = grid[0].size();
+  int nRows = grid.size();
+  int nCols = grid[0].size();
   for (iy = 0; iy < nRows; ++(iy))
   {
     for (ix = 0; ix < nCols; ++(ix))

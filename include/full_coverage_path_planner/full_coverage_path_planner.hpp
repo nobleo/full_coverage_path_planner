@@ -3,30 +3,23 @@
 //
 /** include the libraries you need in your planner here */
 /** for global path planner interface */
+#pragma once
+
 #include <fstream>
 #include <list>
 #include <string>
 #include <vector>
 
+#include "full_coverage_path_planner/common.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include <pluginlib/class_list_macros.h>
-#include <costmap_2d/costmap_2d_ros.h>
-#include <costmap_2d/costmap_2d.h>
-#include <nav_core/base_global_planner.h>
+#include <angles/angles.h>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <nav_msgs/srv/get_map.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <angles/angles.h>
-#include <base_local_planner/world_model.h>
-#include <base_local_planner/costmap_model.h>
-#include <tf/tf.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using std::string;
-
-#ifndef FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_H
-#define FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_H
-
-#include "full_coverage_path_planner/common.h"
 
 // #define DEBUG_PLOT
 
@@ -61,7 +54,7 @@ public:
    * @brief  Default constructor for the NavFnROS object
    */
   FullCoveragePathPlanner();
-  FullCoveragePathPlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
+  // FullCoveragePathPlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
 
   /**
    * @brief  Publish a path for visualization purposes
@@ -72,12 +65,9 @@ public:
   {
   }
 
-  virtual bool makePlan(const geometry_msgs::msg::PoseStamped& start,
-                        const geometry_msgs::msg::PoseStamped& goal, std::vector<geometry_msgs::msg::PoseStamped>& plan) = 0;
-
 protected:
   /**
-   * Convert internal representation of a to a ROS path
+   * @brief Convert internal representation of a to a ROS path
    * @param start Start pose of robot
    * @param goalpoints Goal points from Spiral Algorithm
    * @param plan  Output plan variable
@@ -86,7 +76,7 @@ protected:
                            std::vector<geometry_msgs::msg::PoseStamped>& plan);
 
   /**
-   * Convert ROS Occupancy grid to internal grid representation, given the size of a single tile
+   * @brief Convert ROS Occupancy grid to internal grid representation, given the size of a single tile
    * @param cpp_grid_ ROS occupancy grid representation. Cells higher that 65 are considered occupied
    * @param grid internal map representation
    * @param tileSize size (in meters) of a cell. This can be the robot's size
@@ -100,8 +90,21 @@ protected:
                  float toolRadius,
                  geometry_msgs::msg::PoseStamped const& realStart,
                  Point_t& scaledStart);
-  ros::Publisher plan_pub_;
-  ros::ServiceClient cpp_grid_client_;
+
+  /**
+   * @brief Create Quaternion from Yaw
+   * @param yaw orientation
+   * @return Quaternion with desired yaw orientation
+   */
+  auto createQuaternionMsgFromYaw(double yaw)
+  {
+    tf2::Quaternion q;
+    q.setRPY(0, 0, yaw);
+    return tf2::toMsg(q);
+  }
+  std::shared_ptr<rclcpp::Node> node_;
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
+  rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr cpp_grid_client_;
   nav_msgs::msg::OccupancyGrid cpp_grid_;
   float robot_radius_;
   float tool_radius_;
@@ -140,4 +143,3 @@ private:
   Point_t _poi;
 };
 }  // namespace full_coverage_path_planner
-#endif  // FULL_COVERAGE_PATH_PLANNER_FULL_COVERAGE_PATH_PLANNER_H

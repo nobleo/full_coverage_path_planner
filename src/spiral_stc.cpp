@@ -7,32 +7,36 @@
 #include <string>
 #include <vector>
 
-#include "full_coverage_path_planner/spiral_stc.h"
-#include <pluginlib/class_list_macros.h>
+#include "full_coverage_path_planner/spiral_stc.hpp"
+// #include <pluginlib/class_list_macros.h>
 
-// register this planner as a BaseGlobalPlanner plugin
-PLUGINLIB_EXPORT_CLASS(full_coverage_path_planner::SpiralSTC, nav_core::BaseGlobalPlanner)
+using nav2_util::declare_parameter_if_not_declared;
+// register this planner as a nav2_core::GlobalPlanner plugin
+// For now remove to first check code compiles
+// PLUGINLIB_EXPORT_CLASS(full_coverage_path_planner::SpiralSTC, nav2_core::GlobalPlanner)
 
 namespace full_coverage_path_planner
 {
-void SpiralSTC::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
+void SpiralSTC::initialize(std::string name, nav2_costmap_2d::Costmap2DROS* costmap_ros)
 {
   if (!initialized_)
   {
-    // Create a publisher to visualize the plan
-    rclcpp::Node private_nh("~/");
-    rclcpp::Node nh, private_named_nh("~/" + name);
+    // For now use local node. Later use parent node as in plugin example
+    node_ = rclcpp::Node::make_shared("name");
 
-    plan_pub_ = private_named_nh.advertise<nav_msgs::msg::Path>("plan", 1);
+    // Create a publisher to visualize the plan
+    plan_pub_ = node_->create_publisher<nav_msgs::msg::Path>("plan", 1);
     // Try to request the cpp-grid from the cpp_grid map_server
-    cpp_grid_client_ = nh.serviceClient<nav_msgs::srv::GetMap>("static_map");
+    cpp_grid_client_ = node_->create_client<nav_msgs::srv::GetMap>("static_map");
 
     // Define  robot radius (radius) parameter
     float robot_radius_default = 0.5f;
-    private_named_nh.param<float>("robot_radius", robot_radius_, robot_radius_default);
+    declare_parameter_if_not_declared(node_, name + ".robot_radius", rclcpp::ParameterValue(robot_radius_default));
+    node_->get_parameter(name + ".robot_radius", robot_radius_);
     // Define  tool radius (radius) parameter
     float tool_radius_default = 0.5f;
-    private_named_nh.param<float>("tool_radius", tool_radius_, tool_radius_default);
+    declare_parameter_if_not_declared(node_, name + ".tool_radius", rclcpp::ParameterValue(tool_radius_default));
+    node_->get_parameter(name + ".tool_radius", tool_radius_);
     initialized_ = true;
   }
 }
@@ -40,7 +44,7 @@ void SpiralSTC::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_r
 std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool> > const& grid, std::list<gridNode_t>& init,
                                         std::vector<std::vector<bool> >& visited)
 {
-  int dx, dy, dx_prev, x2, y2, i, nRows = grid.size(), nCols = grid[0].size();
+  int dx, dy, dx_prev, x2, y2, nRows = grid.size(), nCols = grid[0].size();
   // Spiral filling of the open space
   // Copy incoming list to 'end'
   std::list<gridNode_t> pathNodes(init);
@@ -107,7 +111,7 @@ std::list<Point_t> SpiralSTC::spiral_stc(std::vector<std::vector<bool> > const& 
                                           int &multiple_pass_counter,
                                           int &visited_counter)
 {
-  int x, y, nRows = grid.size(), nCols = grid[0].size();
+  int x, y;
   // Initial node is initially set as visited so it does not count
   multiple_pass_counter = 0;
   visited_counter = 0;
@@ -227,17 +231,30 @@ bool SpiralSTC::makePlan(const geometry_msgs::msg::PoseStamped& start, const geo
   clock_t begin = clock();
   Point_t startPoint;
 
-  /********************** Get grid from server **********************/
-  std::vector<std::vector<bool> > grid;
-  nav_msgs::srv::GetMap grid_req_srv;
-  RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Requesting grid!!");
-  if (!cpp_grid_client_.call(grid_req_srv))
-  {
-    RCLCPP_ERROR(rclcpp::get_logger("FullCoveragePathPlanner"), "Could not retrieve grid from map_server");
-    return false;
+  /********************** Wait for server **********************/
+  while (!cpp_grid_client_->wait_for_service(1s)) {
+    if (!rclcpp::ok()) {
+      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
+      return false;
+    }
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service not available, waiting again...");
   }
 
-  if (!parseGrid(grid_req_srv.response.map, grid, robot_radius_ * 2, tool_radius_ * 2, start, startPoint))
+  /********************** Get grid from server **********************/
+
+  auto request = std::make_shared<nav_msgs::srv::GetMap::Request>();
+  RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Requesting grid!!");
+
+  auto result = cpp_grid_client_->async_send_request(request);
+  // Wait for the result.
+  if (rclcpp::spin_until_future_complete(node_, result) !=
+    rclcpp::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service get_map");
+  }
+
+  std::vector< std::vector<bool> > grid;
+  if (!parseGrid(result.get()->map, grid, robot_radius_ * 2, tool_radius_ * 2, start, startPoint))
   {
     RCLCPP_ERROR(rclcpp::get_logger("FullCoveragePathPlanner"), "Could not parse retrieved grid");
     return false;
