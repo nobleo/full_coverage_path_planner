@@ -41,7 +41,7 @@
 
   <export>
     <build_type>ament_cmake</build_type>
-    <nav2_core plugin="${prefix}/global_planner_plugin.xml"/>
+    <nav2_core plugin="${prefix}/fcpp_spiral_plugin.xml"/>
   </export>
 
 </package>

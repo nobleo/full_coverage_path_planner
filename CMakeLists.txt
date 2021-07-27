@@ -82,7 +82,7 @@ ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
 ament_export_dependencies(${dependencies})
 
-pluginlib_export_plugin_description_file(nav2_core global_planner_plugin.xml)
+pluginlib_export_plugin_description_file(nav2_core fcpp_spiral_plugin.xml)
 
 ################################################################################
 # Install
@@ -99,7 +99,7 @@ install(DIRECTORY include/
   DESTINATION include/
 )
 
-install(FILES global_planner_plugin.xml
+install(FILES fcpp_spiral_plugin.xml
   DESTINATION share/${PROJECT_NAME}
 )
 
