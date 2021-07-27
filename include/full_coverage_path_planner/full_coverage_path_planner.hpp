@@ -96,7 +96,12 @@ protected:
    * @param yaw orientation
    * @return Quaternion with desired yaw orientation
    */
-  auto createQuaternionMsgFromYaw(double yaw);
+  auto createQuaternionMsgFromYaw(double yaw)
+  {
+    tf2::Quaternion q;
+    q.setRPY(0, 0, yaw);
+    return tf2::toMsg(q);
+  }
   std::shared_ptr<rclcpp::Node> node_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
   rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr cpp_grid_client_;

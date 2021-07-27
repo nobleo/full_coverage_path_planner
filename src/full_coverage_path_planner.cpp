@@ -36,13 +36,6 @@ FullCoveragePathPlanner::FullCoveragePathPlanner() : initialized_(false)
 {
 }
 
-auto FullCoveragePathPlanner::createQuaternionMsgFromYaw(double yaw)
-{
-  tf2::Quaternion q;
-  q.setRPY(0, 0, yaw);
-  return tf2::toMsg(q);
-}
-
 void FullCoveragePathPlanner::publishPlan(const std::vector<geometry_msgs::msg::PoseStamped>& path)
 {
   if (!initialized_)
