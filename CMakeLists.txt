@@ -17,6 +17,7 @@ endif()
 ################################################################################
 
 find_package(ament_cmake REQUIRED)
+find_package(backward_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(nav2_core REQUIRED)
@@ -32,7 +33,9 @@ find_package(tf2_ros REQUIRED)
 # Add libraries
 ################################################################################
 
-add_library(${PROJECT_NAME}
+set(library_name ${PROJECT_NAME})
+
+add_library(${PROJECT_NAME} SHARED
   src/common.cpp
   src/${PROJECT_NAME}.cpp
   src/spiral_stc.cpp
@@ -77,7 +80,7 @@ ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
 ament_export_dependencies(${dependencies})
 
-pluginlib_export_plugin_description_file(nav2_core fcpp_plugin.xml)
+pluginlib_export_plugin_description_file(nav2_core fcpp_spiral_plugin.xml)
 
 ################################################################################
 # Install
@@ -87,13 +90,14 @@ install(TARGETS
   ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
   )
 
-install(DIRECTORY include/${PROJECT_NAME}
-  DESTINATION include
+install(DIRECTORY include/
+  DESTINATION include/
 )
 
-install(FILES fcpp_plugin.xml
+install(FILES fcpp_spiral_plugin.xml
   DESTINATION share/${PROJECT_NAME}
 )
 

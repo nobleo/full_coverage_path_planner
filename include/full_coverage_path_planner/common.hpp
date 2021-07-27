@@ -45,11 +45,11 @@ inline std::ostream &operator << (std::ostream &os, gridNode_t &g)
 
 typedef struct
 {
-  float x, y;
+  double x, y;
 }
-fPoint_t;
+dPoint_t;
 
-inline std::ostream &operator << (std::ostream &os, fPoint_t &p)
+inline std::ostream &operator << (std::ostream &os, dPoint_t &p)
 {
   return os << "(" << p.x << ", " << p.y << ")";
 }

@@ -16,6 +16,7 @@
   <url>http://wiki.ros.org/full_coverage_path_planner</url>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>backward_ros</depend>
   <depend>geometry_msgs</depend>
   <depend>nav2_costmap_2d</depend>
   <depend>nav2_core</depend>
@@ -40,7 +41,7 @@
 
   <export>
     <build_type>ament_cmake</build_type>
-    <nav2_core plugin="${prefix}/fcpp_plugin.xml"/>
+    <nav2_core plugin="${prefix}/fcpp_spiral_plugin.xml"/>
   </export>
 
 </package>
