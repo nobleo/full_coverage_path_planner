@@ -191,7 +191,7 @@ std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool> > const& g
     }
   }
   // Log
-  printPathNodes(pathNodes);
+  // printPathNodes(pathNodes);
   return pathNodes;
 }
 
@@ -313,9 +313,8 @@ bool SpiralSTC::makePlan(const geometry_msgs::PoseStamped& start, const geometry
   }
   ROS_INFO("grid recieved!!");
 
-//parseCostmap(costmap_, grid, robot_radius_ * 2, tool_radius_ * 2, start, startPoint)
   ROS_INFO("Parsing grid to internal representation...");
-  if (!parseGrid(grid_req_srv.response.map, grid, robot_radius_ * 2, tool_radius_ * 2, start, startPoint))
+  if (!parseCostmap(costmap_, grid, robot_radius_ * 2, tool_radius_ * 2, start, startPoint))
   {
     ROS_ERROR("Could not parse retrieved grid");
     return false;

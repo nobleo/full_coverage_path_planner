@@ -229,12 +229,12 @@ bool FullCoveragePathPlanner::parseCostmap(costmap_2d::Costmap2D* costmap_grid_,
       {
         for (nodeCol = 0; (nodeCol < nodeSize) && ((ix + nodeCol) < nCols); ++nodeCol)
         {
-          double mx = grid_origin_.x + ix + nodeCol;
-          double my = grid_origin_.y + iy + nodeRow;
+          double mx = ix + nodeCol;
+          double my = iy + nodeRow;
           if (costmap_grid_->getCost(mx, my) > costmap_2d::INSCRIBED_INFLATED_OBSTACLE)
           {
             nodeOccupied = true;
-            ROS_INFO("(%f, %f) marked occupied", mx, my);
+            // ROS_INFO("(%f, %f) marked occupied", mx, my);
             break;
           }
         }
