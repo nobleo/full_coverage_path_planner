@@ -122,8 +122,8 @@ namespace full_coverage_path_planner
       }
       // This condition might change in the loop bellow
       done = true;
-
-      for (int i = 0; i < 4; ++i)
+      // loop over the four possible directions: up, right, down, left
+      for (size_t i = 0; i < 4; ++i)
       {
         int x2 = pathNodes.back().pos.x + dx;
         int y2 = pathNodes.back().pos.y + dy;
@@ -143,6 +143,7 @@ namespace full_coverage_path_planner
             it = --(pathNodes.end());
             visited[y2][x2] = eNodeVisited; // Close node
             done = false;
+            // brake for loop
             break;
           }
         }
@@ -166,10 +167,8 @@ namespace full_coverage_path_planner
 
     std::vector<std::vector<bool>> visited;
     visited = grid; // Copy grid matrix
-    int x;
-    int y;
-    x = init.x;
-    y = init.y;
+    int x = init.x;
+    int y = init.y;
 
     Point_t new_point = {x, y};
     gridNode_t new_node =
