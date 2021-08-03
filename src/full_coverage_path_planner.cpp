@@ -185,6 +185,67 @@ void FullCoveragePathPlanner::parsePointlist2Plan(const geometry_msgs::PoseStamp
   ROS_INFO("Plan ready containing %lu goals!", plan.size());
 }
 
+bool FullCoveragePathPlanner::parseCostmap(costmap_2d::Costmap2D* costmap_grid_,
+                                           std::vector<std::vector<bool> >& grid,
+                                           float robotRadius,
+                                           float toolRadius,
+                                           geometry_msgs::PoseStamped const& realStart,
+                                           Point_t& scaledStart)
+{
+  int ix, iy, nodeRow, nodeCol;
+  uint32_t nodeSize = dmax(floor(toolRadius / costmap_grid_->getResolution()), 1);  // Size of node in pixels/units
+  uint32_t nRows = costmap_grid_->getSizeInCellsY(), nCols = costmap_grid_->getSizeInCellsX();
+  ROS_INFO("nRows: %u nCols: %u nodeSize: %d", nRows, nCols, nodeSize);
+
+  if (nRows == 0 || nCols == 0)
+  {
+    return false;
+  }
+
+  // Save map origin and scaling
+  tile_size_ = nodeSize * costmap_grid_->getResolution();  // Size of a tile in meters
+  grid_origin_.x = costmap_grid_->getOriginX();  // x-origin in meters
+  grid_origin_.y = costmap_grid_->getOriginY();  // y-origin in meters
+  ROS_INFO("costmap resolution: %g", costmap_grid_->getResolution());
+  ROS_INFO("tile size: %g", tile_size_);
+  ROS_INFO("grid origin: (%g, %g)", grid_origin_.x, grid_origin_.y);
+
+  // Scale starting point
+  scaledStart.x = static_cast<unsigned int>(clamp((realStart.pose.position.x - grid_origin_.x) / tile_size_, 0.0,
+                             floor(nCols / tile_size_)));
+  scaledStart.y = static_cast<unsigned int>(clamp((realStart.pose.position.y - grid_origin_.y) / tile_size_, 0.0,
+                             floor(nRows / tile_size_)));
+  ROS_INFO("real start: (%g, %g)", realStart.pose.position.x, realStart.pose.position.y);
+  ROS_INFO("scaled start: (%u, %u)", scaledStart.x, scaledStart.y);
+
+  // Scale grid
+  for (iy = 0; iy < nRows; iy = iy + nodeSize)
+  {
+    std::vector<bool> gridRow;
+    for (ix = 0; ix < nCols; ix = ix + nodeSize)
+    {
+      bool nodeOccupied = false;
+      for (nodeRow = 0; (nodeRow < nodeSize) && ((iy + nodeRow) < nRows) && (nodeOccupied == false); ++nodeRow)
+      {
+        for (nodeCol = 0; (nodeCol < nodeSize) && ((ix + nodeCol) < nCols); ++nodeCol)
+        {
+          double mx = grid_origin_.x + ix + nodeCol;
+          double my = grid_origin_.y + iy + nodeRow;
+          if (costmap_grid_->getCost(mx, my) > costmap_2d::INSCRIBED_INFLATED_OBSTACLE)
+          {
+            nodeOccupied = true;
+            ROS_INFO("(%f, %f) marked occupied", mx, my);
+            break;
+          }
+        }
+      }
+      gridRow.push_back(nodeOccupied);
+    }
+    grid.push_back(gridRow);
+  }
+  return true;
+}
+
 bool FullCoveragePathPlanner::parseGrid(nav_msgs::OccupancyGrid const& cpp_grid_,
                                         std::vector<std::vector<bool> >& grid,
                                         float robotRadius,
@@ -207,12 +268,17 @@ bool FullCoveragePathPlanner::parseGrid(nav_msgs::OccupancyGrid const& cpp_grid_
   tile_size_ = nodeSize * cpp_grid_.info.resolution;  // Size of a tile in meters
   grid_origin_.x = cpp_grid_.info.origin.position.x;  // x-origin in meters
   grid_origin_.y = cpp_grid_.info.origin.position.y;  // y-origin in meters
+  ROS_INFO("costmap resolution: %g", cpp_grid_.info.resolution);
+  ROS_INFO("tile size: %g", tile_size_);
+  ROS_INFO("grid origin: (%g, %g)", grid_origin_.x, grid_origin_.y);
 
   // Scale starting point
   scaledStart.x = static_cast<unsigned int>(clamp((realStart.pose.position.x - grid_origin_.x) / tile_size_, 0.0,
                              floor(cpp_grid_.info.width / tile_size_)));
   scaledStart.y = static_cast<unsigned int>(clamp((realStart.pose.position.y - grid_origin_.y) / tile_size_, 0.0,
                              floor(cpp_grid_.info.height / tile_size_)));
+  ROS_INFO("real start: (%g, %g)", realStart.pose.position.x, realStart.pose.position.y);
+  ROS_INFO("scaled start: (%u, %u)", scaledStart.x, scaledStart.y);
 
   // Scale grid
   for (iy = 0; iy < nRows; iy = iy + nodeSize)

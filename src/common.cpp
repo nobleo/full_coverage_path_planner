@@ -328,7 +328,7 @@ bool validMove(int x2, int y2, int nCols, int nRows,
         && (grid[y2][x2] == eNodeOpen && visited[y2][x2] == eNodeOpen); // the path node is unvisited
 }
 
-void addNodeToList(int x2, int y2, gridNode_t prev, std::list<gridNode_t>& pathNodes,
+void addNodeToList(int x2, int y2, std::list<gridNode_t>& pathNodes,
                    std::vector<std::vector<bool>>& visited) {
   Point_t new_point = { x2, y2 };
   gridNode_t new_node =
@@ -337,8 +337,52 @@ void addNodeToList(int x2, int y2, gridNode_t prev, std::list<gridNode_t>& pathN
     0,          // Cost
     0,          // Heuristic
   };
-  prev = pathNodes.back();
   pathNodes.push_back(new_node);
   visited[y2][x2] = eNodeVisited;  // Close node
+  return;
 }
 
+int dirWithMostSpace(int x_init, int y_init, int nCols, int nRows,
+                     std::vector<std::vector<bool> > const& grid,
+                     std::vector<std::vector<bool> > const& visited,
+                     int ignoreDir) {
+  // this array stores how far the robot can travel in a straight line for each direction
+  int free_space_in_dir[5] = {0};
+  // for each direction
+  for (int i = 1; i < 5; i++) {
+    // start from starting pos
+    int x2 = x_init;
+    int y2 = y_init;
+    do {  // loop until hit wall
+      switch (i) {
+        case east:
+          x2++;
+          break;
+        case west:
+          x2--;
+          break;
+        case north:
+          y2++;
+          break;
+        case south:
+          y2--;
+          break;
+        default:
+          break;
+      }
+      free_space_in_dir[i]++;
+    } while (validMove(x2, y2, nCols, nRows, grid, visited));
+  }
+
+  // set initial direction towards direction with most travel possible
+  int robot_dir = 0;
+  int indexValue = 0;
+  for (int i = 1; i <= 4; i++) {
+      // std::cout << "free space in " << i << ": " << free_space_in_dir[i] << std::endl;
+      if (free_space_in_dir[i] > indexValue && i != ignoreDir) {
+          robot_dir = i;
+          indexValue = free_space_in_dir[i];
+      }
+  }
+  return robot_dir;
+}

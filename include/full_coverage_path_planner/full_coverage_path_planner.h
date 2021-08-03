@@ -87,6 +87,22 @@ protected:
 
   /**
    * Convert ROS Occupancy grid to internal grid representation, given the size of a single tile
+   * @param costmap_grid_ Costmap representation. Cells higher that 65 are considered occupied
+   * @param grid internal map representation
+   * @param tileSize size (in meters) of a cell. This can be the robot's size
+   * @param realStart Start position of the robot (in meters)
+   * @param scaledStart Start position of the robot on the grid
+   * @return success
+   */
+  bool parseCostmap(costmap_2d::Costmap2D* costmap_grid_,
+                    std::vector<std::vector<bool> >& grid,
+                    float robotRadius,
+                    float toolRadius,
+                    geometry_msgs::PoseStamped const& realStart,
+                    Point_t& scaledStart);
+
+  /**
+   * Convert ROS Occupancy grid to internal grid representation, given the size of a single tile
    * @param cpp_grid_ ROS occupancy grid representation. Cells higher that 65 are considered occupied
    * @param grid internal map representation
    * @param tileSize size (in meters) of a cell. This can be the robot's size
@@ -103,6 +119,9 @@ protected:
   ros::Publisher plan_pub_;
   ros::ServiceClient cpp_grid_client_;
   nav_msgs::OccupancyGrid cpp_grid_;
+  // Using costmap instead of Occupancy Grid from map server as the costmap updates periodically.
+  costmap_2d::Costmap2DROS* costmap_ros_;
+  costmap_2d::Costmap2D* costmap_;
   float robot_radius_;
   float tool_radius_;
   float plan_resolution_;

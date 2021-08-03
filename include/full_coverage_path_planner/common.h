@@ -136,11 +136,18 @@ std::list<Point_t> map_2_goals(std::vector<std::vector<bool> > const& grid, bool
 
 /**
  * Prints pathNodes in the terminal
+ * @param pathNodes pathNodes to be printed in the terminal
  */
 void printPathNodes(std::list<gridNode_t> pathNodes);
 
 /**
  * returns true only if the desired move is valid
+ * @param x2 x coordinate of desired position
+ * @param y2 y coordinate of desired position
+ * @param nCols
+ * @param nRows 
+ * @param grid internal map representation - 2D grid of bools. true == occupied/blocked/obstacle
+ * @param visited 2D grid of bools. true == visited
  */
 bool validMove(int x2, int y2, int nCols, int nRows,
                std::vector<std::vector<bool> > const& grid,
@@ -149,7 +156,16 @@ bool validMove(int x2, int y2, int nCols, int nRows,
 /**
  * Adds node in (x2, y2) into the list of pathNodes, and marks the node as visited
  */
-bool addNodeToList(int x2, int y2, gridNode_t prev, std::list<gridNode_t> pathNodes,
+void addNodeToList(int x2, int y2, std::list<gridNode_t>& pathNodes,
                    std::vector<std::vector<bool>>& visited);
+
+/**
+ * Returns direction in which most free space is visible when given the robot's current location
+ * @param ignoreDir ignores a single direction specified. Pass 0 (point) to consider all four directions.
+ */
+int dirWithMostSpace(int x2, int y2, int nCols, int nRows,
+                     std::vector<std::vector<bool> > const& grid,
+                     std::vector<std::vector<bool> > const& visited,
+                     int ignoreDir);
 
 #endif  // FULL_COVERAGE_PATH_PLANNER_COMMON_H
