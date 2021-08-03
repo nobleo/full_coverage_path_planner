@@ -15,10 +15,14 @@
     <node pkg="mbf_costmap_nav" type="mbf_costmap_nav" respawn="false" name="move_base_flex" output="screen" required="true">
         <param name="tf_timeout" value="1.5"/>
         <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/planners.yaml" command="load" />
+        <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/costmap_common_params.yaml" command="load" ns="global_costmap"/>
+        <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/costmap_common_params.yaml" command="load" ns="local_costmap"/>
+        <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/global_costmap_params.yaml" command="load" />
         <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/local_costmap_params.yaml" command="load" />
         <param name="SpiralSTC/robot_radius" value="$(arg robot_radius)"/>
         <param name="SpiralSTC/tool_radius" value="$(arg tool_radius)"/>
         <param name="global_costmap/robot_radius" value="$(arg robot_radius)"/>
+<!--        <param name="planner_frequency" value="2"/>-->
         <remap from="odom" to="/odom"/>
         <remap from="scan" to="/scan"/>
 
@@ -29,6 +33,7 @@
     <!-- Move Base backwards compatibility -->
     <node pkg="mbf_costmap_nav" type="move_base_legacy_relay.py" name="move_base" >
         <param name="base_global_planner" value="SpiralSTC" />
+        <param name="planner_frequency" value="2"/>
     </node>
 
     <!-- Mobile robot simulator -->
