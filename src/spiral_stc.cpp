@@ -93,7 +93,8 @@ namespace full_coverage_path_planner
   std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool>> const &grid, std::list<gridNode_t> &init,
                                           std::vector<std::vector<bool>> &visited)
   {
-    int dx, dy, dx_prev, x2, y2, nRows = grid.size(), nCols = grid[0].size();
+    int nRows = grid.size();
+    int nCols = grid[0].size();
     // Spiral filling of the open space
     // Copy incoming list to 'end'
     std::list<gridNode_t> pathNodes(init);
@@ -106,6 +107,10 @@ namespace full_coverage_path_planner
     bool done = false;
     while (!done)
     {
+      // Initialize spiral direction towards y-axis
+      int dx = 0;
+      int dy = 1;
+      int dx_prev;
       if (it != pathNodes.begin())
       {
         // turn ccw
@@ -115,18 +120,13 @@ namespace full_coverage_path_planner
         dx = -dy;
         dy = dx_prev;
       }
-      else
-      {
-        // Initialize spiral direction towards y-axis
-        dx = 0;
-        dy = 1;
-      }
+      // This condition might change in the loop bellow
       done = true;
 
       for (int i = 0; i < 4; ++i)
       {
-        x2 = pathNodes.back().pos.x + dx;
-        y2 = pathNodes.back().pos.y + dy;
+        int x2 = pathNodes.back().pos.x + dx;
+        int y2 = pathNodes.back().pos.y + dy;
         if (x2 >= 0 && x2 < nCols && y2 >= 0 && y2 < nRows)
         {
           if (grid[y2][x2] == eNodeOpen && visited[y2][x2] == eNodeOpen)
@@ -160,13 +160,14 @@ namespace full_coverage_path_planner
                                            int &multiple_pass_counter,
                                            int &visited_counter)
   {
-    int x, y;
     // Initial node is initially set as visited so it does not count
     multiple_pass_counter = 0;
     visited_counter = 0;
 
     std::vector<std::vector<bool>> visited;
     visited = grid; // Copy grid matrix
+    int x;
+    int y;
     x = init.x;
     y = init.y;
 
