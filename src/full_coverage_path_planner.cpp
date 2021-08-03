@@ -65,7 +65,20 @@ namespace full_coverage_path_planner
     bool do_publish = false;
     double orientation = dir::none;
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Received goalpoints with length: %lu", goalpoints.size());
-    if (goalpoints.size() > 1)
+    if(goalpoints.size()<1)
+    {
+      RCLCPP_WARN(rclcpp::get_logger("FullCoveragePathPlanner"), "Empty point list");
+      return;
+    }
+    else if (goalpoints.size() == 1)
+    {
+      new_goal.header.frame_id = "map";
+      new_goal.pose.position.x = (goalpoints.begin()->x) * tile_size_ + grid_origin_.x + tile_size_ * 0.5;
+      new_goal.pose.position.y = (goalpoints.begin()->y) * tile_size_ + grid_origin_.y + tile_size_ * 0.5;
+      new_goal.pose.orientation = createQuaternionMsgFromYaw(0);
+      plan.push_back(new_goal);
+    }
+    else
     {
       for (it = goalpoints.begin(); it != goalpoints.end(); ++it)
       {
@@ -146,14 +159,7 @@ namespace full_coverage_path_planner
         }
       }
     }
-    else
-    {
-      new_goal.header.frame_id = "map";
-      new_goal.pose.position.x = (goalpoints.begin()->x) * tile_size_ + grid_origin_.x + tile_size_ * 0.5;
-      new_goal.pose.position.y = (goalpoints.begin()->y) * tile_size_ + grid_origin_.y + tile_size_ * 0.5;
-      new_goal.pose.orientation = createQuaternionMsgFromYaw(0);
-      plan.push_back(new_goal);
-    }
+
     /* Add poses from current position to start of plan */
 
     // Compute angle between current pose and first plan point
