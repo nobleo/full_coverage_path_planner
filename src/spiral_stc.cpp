@@ -320,7 +320,7 @@ namespace full_coverage_path_planner
 
     clock_t end = clock();
     double elapsed_secs = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
-    std::cout << "elapsed time: " << elapsed_secs << "\n";
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Elapsed time: %f", elapsed_secs);
 
     return true;
   }
