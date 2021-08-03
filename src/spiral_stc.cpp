@@ -191,9 +191,9 @@ namespace full_coverage_path_planner
     std::list<Point_t> goals = map_2_goals(visited, eNodeOpen); // Retrieve remaining goalpoints
     // Add points to full path
     std::list<gridNode_t>::iterator it;
-    for (it = pathNodes.begin(); it != pathNodes.end(); ++it)
+    for (const auto pathNode : pathNodes)
     {
-      Point_t newPoint = {it->pos.x, it->pos.y};
+      Point_t newPoint = {pathNode.pos.x, pathNode.pos.y};
       visited_counter++;
       fullPath.push_back(newPoint);
     }
@@ -224,13 +224,13 @@ namespace full_coverage_path_planner
       }
 
       // Update visited grid
-      for (it = pathNodes.begin(); it != pathNodes.end(); ++it)
+      for (const auto pathNode : pathNodes)
       {
-        if (visited[it->pos.y][it->pos.x])
+        if (visited[pathNode.pos.y][pathNode.pos.x])
         {
           multiple_pass_counter++;
         }
-        visited[it->pos.y][it->pos.x] = eNodeVisited;
+        visited[pathNode.pos.y][pathNode.pos.x] = eNodeVisited;
       }
       if (pathNodes.size() > 0)
       {
@@ -253,9 +253,9 @@ namespace full_coverage_path_planner
 
       goals = map_2_goals(visited, eNodeOpen); // Retrieve remaining goalpoints
 
-      for (it = pathNodes.begin(); it != pathNodes.end(); ++it)
+      for (const auto pathNode : pathNodes)
       {
-        Point_t newPoint = {it->pos.x, it->pos.y};
+        Point_t newPoint = {pathNode.pos.x, pathNode.pos.y};
         visited_counter++;
         fullPath.push_back(newPoint);
       }
