@@ -228,7 +228,7 @@ namespace full_coverage_path_planner
           for (nodeColl = 0; (nodeColl < robotNodeSize) && ((ix + nodeColl) < nCols); ++nodeColl)
           {
             int index_grid = dmax((iy + nodeRow - ceil(static_cast<float>(robotNodeSize - nodeSize) / 2.0)) * nCols + (ix + nodeColl - ceil(static_cast<float>(robotNodeSize - nodeSize) / 2.0)), 0);
-            if (cpp_costmap_data[index_grid] > 65)
+            if (cpp_costmap_data[index_grid] > COVERAGE_COST)
             {
               nodeOccupied = true;
               break;
