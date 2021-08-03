@@ -46,18 +46,11 @@ namespace full_coverage_path_planner
 
     // create a message for the plan
     nav_msgs::msg::Path gui_path;
-    gui_path.poses.resize(path.size());
-
-    if (!path.empty())
+    gui_path.header.frame_id = path[0].header.frame_id;
+    gui_path.header.stamp = path[0].header.stamp;
+    for (const auto pose : path)
     {
-      gui_path.header.frame_id = path[0].header.frame_id;
-      gui_path.header.stamp = path[0].header.stamp;
-    }
-
-    // Extract the plan in world co-ordinates, we assume the path is all in the same frame
-    for (unsigned int i = 0; i < path.size(); i++)
-    {
-      gui_path.poses[i] = path[i];
+      gui_path.poses.push_back(pose);
     }
 
     plan_pub_->publish(gui_path);
@@ -69,7 +62,6 @@ namespace full_coverage_path_planner
   {
     geometry_msgs::msg::PoseStamped new_goal;
     std::list<Point_t>::const_iterator it, it_next, it_prev;
-    int dx_now, dy_now, dx_next, dy_next, move_dir_now = 0, move_dir_next = 0;
     bool do_publish = false;
     float orientation = eDirNone;
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Received goalpoints with length: %lu", goalpoints.size());
@@ -82,6 +74,10 @@ namespace full_coverage_path_planner
         it_prev = it;
         it_prev--;
 
+        int dx_now;
+        int dy_now;
+        int dx_next;
+        int dy_next;
         // Check for the direction of movement
         if (it == goalpoints.begin())
         {
@@ -102,8 +98,8 @@ namespace full_coverage_path_planner
         //  0 +  1*2 =  2
         // -1 +  0*2 = -1
         //  0 + -1*2 = -2
-        move_dir_now = dx_now + dy_now * 2;
-        move_dir_next = dx_next + dy_next * 2;
+        int move_dir_now = dx_now + dy_now * 2;
+        int move_dir_next = dx_next + dy_next * 2;
 
         // Check if this points needs to be published (i.e. a change of direction or first or last point in list)
         do_publish = move_dir_next != move_dir_now || it == goalpoints.begin() ||
@@ -191,8 +187,6 @@ namespace full_coverage_path_planner
                                           geometry_msgs::msg::PoseStamped const &realStart,
                                           Point_t &scaledStart)
   {
-    size_t ix;
-    size_t iy;
     size_t nodeRow;
     size_t nodeColl;
     size_t nodeSize = dmax(floor(toolRadius / cpp_costmap->getResolution()), 1);       // Size of node in pixels/units
@@ -217,10 +211,10 @@ namespace full_coverage_path_planner
                                                     floor(cpp_costmap->getSizeInCellsY() / tile_size_)));
 
     // Scale grid
-    for (iy = 0; iy < nRows; iy = iy + nodeSize)
+    for (size_t iy = 0; iy < nRows; iy = iy + nodeSize)
     {
       std::vector<bool> gridRow;
-      for (ix = 0; ix < nCols; ix = ix + nodeSize)
+      for (size_t ix = 0; ix < nCols; ix = ix + nodeSize)
       {
         bool nodeOccupied = false;
         for (nodeRow = 0; (nodeRow < robotNodeSize) && ((iy + nodeRow) < nRows) && (nodeOccupied == false); ++nodeRow)
