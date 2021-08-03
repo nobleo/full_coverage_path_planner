@@ -63,7 +63,7 @@ namespace full_coverage_path_planner
     geometry_msgs::msg::PoseStamped new_goal;
     std::list<Point_t>::const_iterator it, it_next, it_prev;
     bool do_publish = false;
-    float orientation = dir::none;
+    double orientation = dir::none;
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Received goalpoints with length: %lu", goalpoints.size());
     if (goalpoints.size() > 1)
     {
@@ -182,8 +182,8 @@ namespace full_coverage_path_planner
 
   bool FullCoveragePathPlanner::parseGrid(nav2_costmap_2d::Costmap2D const * cpp_costmap,
                                           std::vector<std::vector<bool>> &grid,
-                                          float robotRadius,
-                                          float toolRadius,
+                                          double robotRadius,
+                                          double toolRadius,
                                           geometry_msgs::msg::PoseStamped const &realStart,
                                           Point_t &scaledStart)
   {
@@ -221,7 +221,7 @@ namespace full_coverage_path_planner
         {
           for (nodeColl = 0; (nodeColl < robotNodeSize) && ((ix + nodeColl) < nCols); ++nodeColl)
           {
-            int index_grid = dmax((iy + nodeRow - ceil(static_cast<float>(robotNodeSize - nodeSize) / 2.0)) * nCols + (ix + nodeColl - ceil(static_cast<float>(robotNodeSize - nodeSize) / 2.0)), 0);
+            int index_grid = dmax((iy + nodeRow - ceil(static_cast<double>(robotNodeSize - nodeSize) / 2.0)) * nCols + (ix + nodeColl - ceil(static_cast<double>(robotNodeSize - nodeSize) / 2.0)), 0);
             if (cpp_costmap_data[index_grid] > COVERAGE_COST)
             {
               nodeOccupied = true;

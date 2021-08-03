@@ -91,8 +91,8 @@ namespace full_coverage_path_planner
      */
     bool parseGrid(nav2_costmap_2d::Costmap2D const * cpp_costmap,
                    std::vector<std::vector<bool>> &grid,
-                   float robotRadius,
-                   float toolRadius,
+                   double robotRadius,
+                   double toolRadius,
                    geometry_msgs::msg::PoseStamped const &realStart,
                    Point_t &scaledStart);
 
@@ -110,10 +110,10 @@ namespace full_coverage_path_planner
     }
     nav2_util::LifecycleNode::SharedPtr node_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
-    float robot_radius_;
-    float tool_radius_;
-    float plan_resolution_;
-    float tile_size_;
+    double robot_radius_;
+    double tool_radius_;
+    double plan_resolution_;
+    double tile_size_;
     dPoint_t grid_origin_;
     bool initialized_;
     geometry_msgs::msg::PoseStamped previous_goal_;
