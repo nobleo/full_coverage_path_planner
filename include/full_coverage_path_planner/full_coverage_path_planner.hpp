@@ -49,6 +49,7 @@ enum
 
 namespace full_coverage_path_planner
 {
+
   class FullCoveragePathPlanner
   {
   public:
@@ -66,6 +67,7 @@ namespace full_coverage_path_planner
     ~FullCoveragePathPlanner()
     {
     }
+  static const unsigned char COVERAGE_COST = 65;  // Cost for checking coverage. Perhaps define this in coverage costmap plugin?
 
   protected:
     /**
