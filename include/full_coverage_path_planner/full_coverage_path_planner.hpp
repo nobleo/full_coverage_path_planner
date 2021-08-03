@@ -38,17 +38,18 @@ using std::string;
 #define clamp(a, lower, upper) dmax(dmin(a, upper), lower)
 #endif
 
-enum
-{
-  eDirNone = 0,
-  eDirRight = 1,
-  eDirUp = 2,
-  eDirLeft = -1,
-  eDirDown = -2,
-};
 
 namespace full_coverage_path_planner
 {
+
+  enum dir
+  {
+    none = 0,
+    right = 1,
+    up = 2,
+    left = -1,
+    down = -2,
+  };
 
   class FullCoveragePathPlanner
   {

@@ -63,7 +63,7 @@ namespace full_coverage_path_planner
     geometry_msgs::msg::PoseStamped new_goal;
     std::list<Point_t>::const_iterator it, it_next, it_prev;
     bool do_publish = false;
-    float orientation = eDirNone;
+    float orientation = dir::none;
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Received goalpoints with length: %lu", goalpoints.size());
     if (goalpoints.size() > 1)
     {
@@ -114,19 +114,19 @@ namespace full_coverage_path_planner
           // Calculate desired orientation to be in line with movement direction
           switch (move_dir_now)
           {
-          case eDirNone:
+          case dir::none:
             // Keep orientation
             break;
-          case eDirRight:
+          case dir::right:
             orientation = 0;
             break;
-          case eDirUp:
+          case dir::up:
             orientation = M_PI / 2;
             break;
-          case eDirLeft:
+          case dir::left:
             orientation = M_PI;
             break;
-          case eDirDown:
+          case dir::down:
             orientation = M_PI * 1.5;
             break;
           }
