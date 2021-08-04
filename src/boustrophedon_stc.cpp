@@ -7,17 +7,17 @@
 #include <string>
 #include <vector>
 
-#include "full_coverage_path_planner/spiral_stc.h"
+#include "full_coverage_path_planner/boustrophedon_stc.h"
 #include <pluginlib/class_list_macros.h>
 
 // register this planner as a BaseGlobalPlanner plugin
-PLUGINLIB_EXPORT_CLASS(full_coverage_path_planner::SpiralSTC, nav_core::BaseGlobalPlanner)
+PLUGINLIB_EXPORT_CLASS(full_coverage_path_planner::BoustrophedonSTC, nav_core::BaseGlobalPlanner)
 
 int pattern_dir_ = point;
 
 namespace full_coverage_path_planner
 {
-void SpiralSTC::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
+void BoustrophedonSTC::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
 {
   if (!initialized_)
   {
@@ -42,7 +42,7 @@ void SpiralSTC::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_r
   }
 }
 
-std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool> > const& grid, std::list<gridNode_t>& init,
+std::list<gridNode_t> BoustrophedonSTC::boustrophedon(std::vector<std::vector<bool> > const& grid, std::list<gridNode_t>& init,
                                         std::vector<std::vector<bool> >& visited)
 {
   int dx, dy, x2, y2, i, nRows = grid.size(), nCols = grid[0].size();
@@ -74,7 +74,7 @@ std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool> > const& g
       dy = -1;
       break;
     default:
-      ROS_ERROR("Full Coverage Path Planner: NO INITIAL ROBOT DIRECTION CALCULATED. This is a logic error that must be fixed by editing spiral_stc.cpp. Will travel east for now.");
+      ROS_ERROR("Full Coverage Path Planner: NO INITIAL ROBOT DIRECTION CALCULATED. This is a logic error that must be fixed by editing boustrophedon_stc.cpp. Will travel east for now.");
       robot_dir = east;
       dx = +1;
       dy = 0;
@@ -195,7 +195,7 @@ std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool> > const& g
   return pathNodes;
 }
 
-std::list<Point_t> SpiralSTC::spiral_stc(std::vector<std::vector<bool> > const& grid,
+std::list<Point_t> BoustrophedonSTC::boustrophedon_stc(std::vector<std::vector<bool> > const& grid,
                                           Point_t& init,
                                           int &multiple_pass_counter,
                                           int &visited_counter)
@@ -228,10 +228,10 @@ std::list<Point_t> SpiralSTC::spiral_stc(std::vector<std::vector<bool> > const& 
   while (goals.size() != 0)
   {
     // boustrophedon pattern from current position
-    pathNodes = spiral(grid, pathNodes, visited);
+    pathNodes = boustrophedon(grid, pathNodes, visited);
 #ifdef DEBUG_PLOT
-    ROS_INFO("Visited grid updated after spiral:");
-    printGrid(grid, visited, pathNodes, SpiralStart, pathNodes.back());
+    ROS_INFO("Visited grid updated after boustrophedon:");
+    printGrid(grid, visited, pathNodes, PatternStart, pathNodes.back());
 #endif
 
     for (it = pathNodes.begin(); it != pathNodes.end(); ++it)
@@ -273,7 +273,7 @@ std::list<Point_t> SpiralSTC::spiral_stc(std::vector<std::vector<bool> > const& 
 
 #ifdef DEBUG_PLOT
     ROS_INFO("Grid with path marked as visited is:");
-    gridNode_t SpiralStart = pathNodes.back();
+    gridNode_t PatternStart = pathNodes.back();
     printGrid(grid, visited, pathNodes, pathNodes.front(), pathNodes.back());
 #endif
 
@@ -282,7 +282,7 @@ std::list<Point_t> SpiralSTC::spiral_stc(std::vector<std::vector<bool> > const& 
   return fullPath;
 }
 
-bool SpiralSTC::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal,
+bool BoustrophedonSTC::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal,
                          std::vector<geometry_msgs::PoseStamped>& plan)
 {
   if (!initialized_)
@@ -328,22 +328,22 @@ bool SpiralSTC::makePlan(const geometry_msgs::PoseStamped& start, const geometry
   printGrid(grid, grid, printPath);
 #endif
 
-  std::list<Point_t> goalPoints = spiral_stc(grid,
+  std::list<Point_t> goalPoints = boustrophedon_stc(grid,
                                               startPoint,
-                                              spiral_cpp_metrics_.multiple_pass_counter,
-                                              spiral_cpp_metrics_.visited_counter);
+                                              boustrophedon_cpp_metrics_.multiple_pass_counter,
+                                              boustrophedon_cpp_metrics_.visited_counter);
   ROS_INFO("naive cpp completed!");
   ROS_INFO("Converting path to plan");
 
   parsePointlist2Plan(start, goalPoints, plan);
   // Print some metrics:
-  spiral_cpp_metrics_.accessible_counter = spiral_cpp_metrics_.visited_counter
-                                            - spiral_cpp_metrics_.multiple_pass_counter;
-  spiral_cpp_metrics_.total_area_covered = (4.0 * tool_radius_ * tool_radius_) * spiral_cpp_metrics_.accessible_counter;
-  ROS_INFO("Total visited: %d", spiral_cpp_metrics_.visited_counter);
-  ROS_INFO("Total re-visited: %d", spiral_cpp_metrics_.multiple_pass_counter);
-  ROS_INFO("Total accessible cells: %d", spiral_cpp_metrics_.accessible_counter);
-  ROS_INFO("Total accessible area: %f", spiral_cpp_metrics_.total_area_covered);
+  boustrophedon_cpp_metrics_.accessible_counter = boustrophedon_cpp_metrics_.visited_counter
+                                            - boustrophedon_cpp_metrics_.multiple_pass_counter;
+  boustrophedon_cpp_metrics_.total_area_covered = (4.0 * tool_radius_ * tool_radius_) * boustrophedon_cpp_metrics_.accessible_counter;
+  ROS_INFO("Total visited: %d", boustrophedon_cpp_metrics_.visited_counter);
+  ROS_INFO("Total re-visited: %d", boustrophedon_cpp_metrics_.multiple_pass_counter);
+  ROS_INFO("Total accessible cells: %d", boustrophedon_cpp_metrics_.accessible_counter);
+  ROS_INFO("Total accessible area: %f", boustrophedon_cpp_metrics_.total_area_covered);
 
   // TODO(CesarLopez): Check if global path should be calculated repetitively or just kept
   // (also controlled by planner_frequency parameter in move_base namespace)

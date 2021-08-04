@@ -20,34 +20,34 @@
 
 using std::string;
 
-#ifndef FULL_COVERAGE_PATH_PLANNER_SPIRAL_STC_H
-#define FULL_COVERAGE_PATH_PLANNER_SPIRAL_STC_H
+#ifndef FULL_COVERAGE_PATH_PLANNER_BOUSTROPHEDON_STC_H
+#define FULL_COVERAGE_PATH_PLANNER_BOUSTROPHEDON_STC_H
 
 #include "full_coverage_path_planner/full_coverage_path_planner.h"
 namespace full_coverage_path_planner
 {
-class SpiralSTC : public nav_core::BaseGlobalPlanner, private full_coverage_path_planner::FullCoveragePathPlanner
+class BoustrophedonSTC : public nav_core::BaseGlobalPlanner, private full_coverage_path_planner::FullCoveragePathPlanner
 {
 public:
   /**
-   * Find a path that spirals inwards from init until an obstacle is seen in the grid
+   * Find a path that does the boustrophedon pattern starting from init until a dead end is reached in the grid
    * @param grid 2D grid of bools. true == occupied/blocked/obstacle
    * @param init start position
-   * @param visited all the nodes visited by the spiral
-   * @return list of nodes that form the spiral
+   * @param visited all the nodes visited by the boustrophedon pattern
+   * @return list of nodes that form the boustrophedon pattern
    */
-  static std::list<gridNode_t> spiral(std::vector<std::vector<bool> > const &grid, std::list<gridNode_t> &init,
+  static std::list<gridNode_t> boustrophedon(std::vector<std::vector<bool> > const &grid, std::list<gridNode_t> &init,
                                       std::vector<std::vector<bool> > &visited);
 
   /**
-   * Perform Spiral-STC (Spanning Tree Coverage) coverage path planning.
-   * In essence, the robot moves forward until an obstacle or visited node is met, then turns right (making a spiral)
-   * When stuck in the middle of the spiral, use A* to get out again and start a new spiral, until a* can't find a path to uncovered cells
+   * Perform Boustrophedon-STC (Spanning Tree Coverage) coverage path planning.
+   * In essence, the robot moves forward until an obstacle or visited node is met, then turns right or left (making a boustrophedon pattern)
+   * When stuck in the middle of the boustrophedon, use A* to get out again and start a new boustrophedon, until a* can't find a path to uncovered cells
    * @param grid
    * @param init
    * @return
    */
-  static std::list<Point_t> spiral_stc(std::vector<std::vector<bool> > const &grid,
+  static std::list<Point_t> boustrophedon_stc(std::vector<std::vector<bool> > const &grid,
                                         Point_t &init,
                                         int &multiple_pass_counter,
                                         int &visited_counter);
@@ -72,4 +72,4 @@ private:
 };
 
 }  // namespace full_coverage_path_planner
-#endif  // FULL_COVERAGE_PATH_PLANNER_SPIRAL_STC_H
+#endif  // FULL_COVERAGE_PATH_PLANNER_BOUSTROPHEDON_STC_H

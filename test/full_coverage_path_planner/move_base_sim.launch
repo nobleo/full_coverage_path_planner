@@ -29,7 +29,7 @@
     <node name="interpolator" pkg="tracking_pid" type="path_interpolator">
         <param name="target_x_vel" value="$(arg target_x_vel)"/>
         <param name="target_yaw_vel" value="$(arg target_yaw_vel)"/>
-        <!-- <remap from="path" to="/move_base/SpiralSTC/plan"/> -->
+        <!-- <remap from="path" to="/move_base/BoustrophedonSTC/plan"/> -->
     </node>
 
     <!--Tracking_pid tries to get the robot as close to it's goal point as possible-->

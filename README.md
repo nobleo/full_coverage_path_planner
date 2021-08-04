@@ -1,12 +1,19 @@
-# Full Coverage Path Planner (FCPP)
+# Boustrophedon Full Coverage Path Planner (Modified)
 
+## Acknowledgement
+
+This package is a modification of the Full Coverage Path Planner package from Nobleo.
+
+It is modified such that a Boustrophedon Pattern is used to plan the path rather than a Spiral algorithm in the original package.
+
+Refer to the original package here: http://wiki.ros.org/full_coverage_path_planner
 ## Overview
 
-This package provides an implementation of a Full Coverage Path Planner (FCPP) using the Backtracking Spiral Algorithm (BSA), see [1].
+This package provides an implementation of a Full Coverage Path Planner (FCPP) using the Boustrophedon Pattern. see [1] and [2].
 
 This packages acts as a global planner plugin to the Move Base package (http://wiki.ros.org/move_base).
 
-![BSA](doc/fcpp_robot_0_5m_plus_tool_0_2m.png)
+![BSA](doc/fcpp_modified_boustrophedon.png)
 
 The user can configure robot radius and tool radius separately:
 
@@ -15,9 +22,11 @@ The user can configure robot radius and tool radius separately:
 
 **Keywords:** coverage path planning, move base
 
-### License
+### Authors
 
 Apache 2.0
+
+**Package modified by Ethan Kim, ethanc.kim@uwaterloo.ca, MapaRobo Inc.**
 
 **Author(s): Yury Brodskiy, Ferry Schoenmakers, Tim Clephas, Jerrel Unkel, Loy van Beek, Cesar lopez**
 
@@ -25,7 +34,7 @@ Apache 2.0
 
 **Affiliation: Nobleo Projects BV, Eindhoven, the Netherlands**
 
-The Full Coverage Path Planner package has been tested under [ROS] Melodic and Ubuntu 18.04.
+The Modified package has been tested under [ROS] Noetic and Ubuntu 20.04.
 
 ## Installation
 
@@ -57,8 +66,8 @@ All tests can be run using:
 #### test_common
 Unit test that checks the basic functions used by the repository
 
-#### test_spiral_stc
-Unit test that checks the basis spiral algorithm for full coverage. The test is performed for different situations to check that the algorithm coverage the accessible map cells. A test is also performed in randomly generated maps.
+#### test_boustrophedon_stc
+Unit test that checks the basis boustrophedon algorithm for full coverage. The test is performed for different situations to check that the algorithm coverage the accessible map cells. A test is also performed in randomly generated maps.
 
 #### test_full_coverage_path_planner.test
 ROS system test that checks the full coverage path planner together with a tracking pid. A simulation is run such that a robot moves to fully cover the accessible cells in a given map.
@@ -131,8 +140,8 @@ The CoverageProgressNode keeps track of coverage progress. It does this by perio
 
 
 ## Plugins
-### full_coverage_path_planner/SpiralSTC
-For use in move_base(\_flex) as "base_global_planner"="full_coverage_path_planner/SpiralSTC". It uses global_cost_map and global_costmap/robot_radius.
+### full_coverage_path_planner/BoustrophedonSTC
+For use in move_base(\_flex) as "base_global_planner"="full_coverage_path_planner/BoustrophedonSTC". It uses global_cost_map and global_costmap/robot_radius.
 
 #### Parameters
 
@@ -142,18 +151,10 @@ For use in move_base(\_flex) as "base_global_planner"="full_coverage_path_planne
 
 ## References
 
-[1] GONZALEZ, Enrique, et al. BSA: A complete coverage algorithm. In: Proceedings of the 2005 IEEE International Conference on Robotics and Automation. IEEE, 2005. p. 2040-2044.
+[1] Choset, Howie, and Philippe Pignon. "Coverage path planning: The boustrophedon cellular decomposition." Field and service robotics. Springer, London, 1998.
+[2] Zelinsky, Alexander, et al. "Planning paths of complete coverage of an unstructured environment by a mobile robot." Proceedings of international conference on advanced robotics. Vol. 13. 1993.
 
-## Bugs & Feature Requests
-
-Please report bugs and request features using the [Issue Tracker](https://github.com/nobleo/full_coverage_path_planner/issues).
-
-
-[ROS]: http://www.ros.org
-[rviz]: http://wiki.ros.org/rviz
-[MBF]: http://wiki.ros.org/move_base_flex
-
-## Acknowledgments
+## Acknowledgments from Original Authors
 
 <!--
     ROSIN acknowledgement from the ROSIN press kit

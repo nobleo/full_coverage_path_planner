@@ -79,7 +79,7 @@ protected:
   /**
    * Convert internal representation of a to a ROS path
    * @param start Start pose of robot
-   * @param goalpoints Goal points from Spiral Algorithm
+   * @param goalpoints Goal points from Boustrophedon Algorithm
    * @param plan  Output plan variable
    */
   void parsePointlist2Plan(const geometry_msgs::PoseStamped& start, std::list<Point_t> const& goalpoints,
@@ -130,14 +130,14 @@ protected:
   bool initialized_;
   geometry_msgs::PoseStamped previous_goal_;
 
-  struct spiral_cpp_metrics_type
+  struct boustrophedon_cpp_metrics_type
   {
     int visited_counter;
     int multiple_pass_counter;
     int accessible_counter;
     double total_area_covered;
   };
-  spiral_cpp_metrics_type spiral_cpp_metrics_;
+  boustrophedon_cpp_metrics_type boustrophedon_cpp_metrics_;
 };
 
 

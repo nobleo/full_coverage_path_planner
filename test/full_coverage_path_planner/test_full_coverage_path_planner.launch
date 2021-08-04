@@ -19,20 +19,20 @@
         <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/costmap_common_params.yaml" command="load" ns="local_costmap"/>
         <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/global_costmap_params.yaml" command="load" />
         <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/local_costmap_params.yaml" command="load" />
-        <param name="SpiralSTC/robot_radius" value="$(arg robot_radius)"/>
-        <param name="SpiralSTC/tool_radius" value="$(arg tool_radius)"/>
+        <param name="BoustrophedonSTC/robot_radius" value="$(arg robot_radius)"/>
+        <param name="BoustrophedonSTC/tool_radius" value="$(arg tool_radius)"/>
         <param name="global_costmap/robot_radius" value="$(arg robot_radius)"/>
 <!--        <param name="planner_frequency" value="2"/>-->
         <remap from="odom" to="/odom"/>
         <remap from="scan" to="/scan"/>
 
-        <remap from="/move_base_flex/SpiralSTC/plan" to="/move_base/SpiralSTC/plan"/>
+        <remap from="/move_base_flex/BoustrophedonSTC/plan" to="/move_base/BoustrophedonSTC/plan"/>
         <remap from="/move_base_flex/tracking_pid/interpolator" to="/move_base/TrackingPidLocalPlanner/interpolator"/>
     </node>
 
     <!-- Move Base backwards compatibility -->
     <node pkg="mbf_costmap_nav" type="move_base_legacy_relay.py" name="move_base" >
-        <param name="base_global_planner" value="SpiralSTC" />
+        <param name="base_global_planner" value="BoustrophedonSTC" />
         <param name="planner_frequency" value="2"/>
     </node>
 
@@ -54,7 +54,7 @@
     <node name="interpolator" pkg="tracking_pid" type="path_interpolator">
         <param name="target_x_vel" value="$(arg target_x_vel)"/>
         <param name="target_yaw_vel" value="$(arg target_yaw_vel)"/>
-        <remap from="path" to="/move_base/SpiralSTC/plan"/>
+        <remap from="path" to="/move_base/BoustrophedonSTC/plan"/>
     </node>
 
     <!--Tracking_pid tries to get the robot as close to it's goal point as possible-->

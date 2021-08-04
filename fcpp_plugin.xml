@@ -1,9 +1,9 @@
 <library path="lib/libfull_coverage_path_planner">
-  <class name="full_coverage_path_planner/SpiralSTC" type="full_coverage_path_planner::SpiralSTC" base_class_type="nav_core::BaseGlobalPlanner">
+  <class name="full_coverage_path_planner/BoustrophedonSTC" type="full_coverage_path_planner::BoustrophedonSTC" base_class_type="nav_core::BaseGlobalPlanner">
     <description>
-      Plans a path that covers all accessible points in a costmap by using Spiral-STC.
-      Spiral-STC works by following the walls and spiraling inwards until it cannot go further.
-      Then it uses A* to go back outside of the current spiral and then spirals again.
+      Plans a path that covers all accessible points in a costmap by using Boustrophedon-STC (Spanning Tree Coverage).
+      In essence, the robot moves forward until an obstacle or visited node is met, then turns right or left (making a boustrophedon pattern)
+      When stuck while completing a boustrophedon pattern, use A* to get out again and start a new boustrophedon, until A* can't find a path to uncovered cells
     </description>
   </class>
 </library>
