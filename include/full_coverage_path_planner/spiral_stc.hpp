@@ -116,7 +116,7 @@ namespace full_coverage_path_planner
      * @return list of nodes that form the spiral
      */
     std::list<gridNode_t> spiral(std::vector<std::vector<bool>> const &grid, std::list<gridNode_t> &init,
-                                        std::vector<std::vector<bool>> &visited);
+                                        std::vector<std::vector<bool>> &visited); // Aron: was static
 
     /**
      * Perform Spiral-STC (Spanning Tree Coverage) coverage path planning.
@@ -127,6 +127,8 @@ namespace full_coverage_path_planner
      * @return
      */
     std::list<Point_t> spiral_stc(std::vector<std::vector<bool>> const &grid, Point_t &init,
-                                  int &multiple_pass_counter, int &visited_counter);
+                                  int &multiple_pass_counter, int &visited_counter); // Aron: was static
+
+    std::list<Point_t> manoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, int &division_factor);
   };
 }  // namespace full_coverage_path_planner

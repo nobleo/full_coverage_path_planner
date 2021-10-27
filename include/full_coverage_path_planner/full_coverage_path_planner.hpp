@@ -66,7 +66,8 @@ namespace full_coverage_path_planner
     ~FullCoveragePathPlanner()
     {
     }
-  static const unsigned char COVERAGE_COST = 65;  // Cost for checking coverage. Perhaps define this in coverage costmap plugin?
+
+    static const unsigned char COVERAGE_COST = 65;  // Cost for checking coverage. Perhaps define this in coverage costmap plugin?
 
   protected:
     /**
@@ -106,6 +107,9 @@ namespace full_coverage_path_planner
       q.setRPY(0, 0, yaw);
       return tf2::toMsg(q);
     }
+
+    // Aron: new variable to divide to pick tile_size as tool_width/uneven number
+    int division_factor_ = 3; // uneven number here
 
     nav2_util::LifecycleNode::SharedPtr node_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;

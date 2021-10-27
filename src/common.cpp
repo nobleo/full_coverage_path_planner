@@ -69,8 +69,8 @@ bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_
 
   closed[init.pos.y][init.pos.x] = eNodeVisited;  // Of course we have visited the current/initial location
 #ifdef DEBUG_PLOT
-  std::cout << "A*: Marked init " << init << " as eNodeVisited (true)" << std::endl;
-  printGrid(closed);
+  std::cout << "A*: marked init " << init << " as eNodeVisited (true)" << std::endl;
+  //printGrid(closed);
 #endif
 
   std::vector<std::vector<gridNode_t> > open1(1, std::vector<gridNode_t>(1, init));  // open1 is a *vector* of paths
@@ -168,6 +168,7 @@ bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_
               };
               newPath.push_back(new_node);
               closed[new_node.pos.y][new_node.pos.x] = eNodeVisited;  // New node is now used in a path and thus visited
+
 #ifdef DEBUG_PLOT
               std::cout << "A*: Marked new_node " << new_node << " as eNodeVisited (true)" << std::endl;
               std::cout << "A*: Add path from " << newPath.front().pos << " to " << newPath.back().pos

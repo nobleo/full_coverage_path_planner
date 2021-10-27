@@ -64,8 +64,8 @@ namespace full_coverage_path_planner
     RCLCPP_INFO(
       rclcpp::get_logger("FullCoveragePathPlanner"), "Activating plugin %s of type FullCoveragePathPlanner",
       name_.c_str());
-      vis_pub_grid_->on_activate();
-      vis_pub_spirals_->on_activate();
+      vis_pub_grid_->on_activate(); // Aron: necessary??
+      vis_pub_spirals_->on_activate(); // Aron: necessary??
   }
 
   void SpiralSTC::deactivate()
@@ -95,20 +95,20 @@ namespace full_coverage_path_planner
 
     return global_path;
   }
+
   std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool>> const &grid, std::list<gridNode_t> &init,
                                           std::vector<std::vector<bool>> &visited)
   {
     int nRows = grid.size();
     int nCols = grid[0].size();
-    // Spiral filling of the open space
-    // Copy incoming list to 'end'
-    std::list<gridNode_t> pathNodes(init);
-    // Create iterator for gridNode_t list and let it point to the last element of end
-    std::list<gridNode_t>::iterator it = --(pathNodes.end());
-    if (pathNodes.size() > 1) // if list is length 1, keep iterator at end
+    std::list<gridNode_t> pathNodes(init); // Copy incoming list to pathNodes
+    std::list<gridNode_t>::iterator it = --(pathNodes.end()); // Create iterator and let it point to the last element of end
+    if (pathNodes.size() > 1) // If list is length 1, keep iterator at end
       it--;                   // Let iterator point to second to last element
 
     gridNode_t prev = *(it);
+    std::list<Point_t> man_grids;
+    std::list<Point_t> visited_after_man;
     bool done = false;
     while (!done)
     {
@@ -118,41 +118,58 @@ namespace full_coverage_path_planner
       int dx_prev;
       if (it != pathNodes.begin())
       {
-        // turn ccw
+        // Turn counter-clockwise
         dx = pathNodes.back().pos.x - prev.pos.x;
         dy = pathNodes.back().pos.y - prev.pos.y;
         dx_prev = dx;
         dx = -dy;
         dy = dx_prev;
       }
-      // This condition might change in the loop bellow
+      // This condition might change in the loop below
       done = true;
-      // loop over the four possible directions: up, right, down, left
+      // Loop over the four possible directions: forward, right, backward, left
       for (size_t i = 0; i < 4; ++i)
       {
+        int x1 = pathNodes.back().pos.x;
+        int y1 = pathNodes.back().pos.y;
         int x2 = pathNodes.back().pos.x + dx;
         int y2 = pathNodes.back().pos.y + dy;
-        if (x2 >= 0 && x2 < nCols && y2 >= 0 && y2 < nRows)
+        man_grids = manoeuvreFootprint(x1, y1, x2, y2, division_factor_);
+        visited_after_man = manoeuvreFootprint(x2, y2, x1, y1, division_factor_);
+        // Check if entire footprint falls inside grid limits
+        if (x2 >= 0 + (division_factor_-1)/2 && x2 < nCols - (division_factor_-1)/2 && y2 >= 0 + (division_factor_-1)/2 && y2 < nRows - (division_factor_-1)/2)
         {
-          if (grid[y2][x2] == eNodeOpen && visited[y2][x2] == eNodeOpen)
+          bool man_is_free = true;
+          for (const auto man_grid : man_grids)
+          {
+            if (!(grid[man_grid.y][man_grid.x] == eNodeOpen && visited[man_grid.y][man_grid.x] == eNodeOpen))
+            {
+              man_is_free = false;
+              break;
+            }
+          }
+          if (man_is_free)
           {
             Point_t new_point = {x2, y2};
-            gridNode_t new_node =
-                {
-                    new_point, // Point: x,y
-                    0,         // Cost
-                    0,         // Heuristic
-                };
+            gridNode_t new_node = {new_point, 0, 0};
             prev = pathNodes.back();
             pathNodes.push_back(new_node);
             it = --(pathNodes.end());
-            visited[y2][x2] = eNodeVisited; // Close node
+            visited[pathNodes.back().pos.y+1][pathNodes.back().pos.x] = eNodeVisited; // Close footprint nodes
+            visited[pathNodes.back().pos.y+1][pathNodes.back().pos.x+1] = eNodeVisited;
+            visited[pathNodes.back().pos.y+1][pathNodes.back().pos.x-1] = eNodeVisited;
+            visited[pathNodes.back().pos.y][pathNodes.back().pos.x] = eNodeVisited;
+            visited[pathNodes.back().pos.y][pathNodes.back().pos.x+1] = eNodeVisited;
+            visited[pathNodes.back().pos.y][pathNodes.back().pos.x] = eNodeVisited;
+            visited[pathNodes.back().pos.y-1][pathNodes.back().pos.x] = eNodeVisited;
+            visited[pathNodes.back().pos.y-1][pathNodes.back().pos.x+1] = eNodeVisited;
+            visited[pathNodes.back().pos.y-1][pathNodes.back().pos.x-1] = eNodeVisited;
             done = false;
-            // Break for loop
+            // brake for loop
             break;
           }
         }
-        // Try next direction cw
+        // Try next direction clockwise
         dx_prev = dx;
         dx = dy;
         dy = -dx_prev;
@@ -193,7 +210,7 @@ namespace full_coverage_path_planner
 
     std::list<Point_t> goals = map_2_goals(visited, eNodeOpen); // Retrieve remaining goalpoints
     // Add points to full path
-    std::list<gridNode_t>::iterator it;
+    std::list<gridNode_t>::iterator it; // Aron: necessary??
     for (const auto pathNode : pathNodes)
     {
       Point_t newPoint = {pathNode.pos.x, pathNode.pos.y};
@@ -234,7 +251,7 @@ namespace full_coverage_path_planner
 
       gridNode_t lastNodeAstar = pathNodes.back();
 
-      // Spiral fill from current position
+      // Spiral fill from current position (added to A* transition path)
       pathNodes = spiral(grid, pathNodes, visited);
 
       // Need to extract only the spiral part for visualization
@@ -250,7 +267,10 @@ namespace full_coverage_path_planner
       }
       std::list<gridNode_t> pathNodes_spiral;
       pathNodes_spiral.splice(pathNodes_spiral.begin(), pathNodes_copy, it, pathNodes_copy.end());
-      SpiralSTC::visualizeSpirals(pathNodes_spiral, "spiral" + std::to_string(goals.size() + 1), 0.2, 0.5, 0.0, 0.6, 0.0);
+      if (pathNodes_spiral.size() > 1)
+      {
+        SpiralSTC::visualizeSpirals(pathNodes_spiral, "spiral" + std::to_string(goals.size() + 1), 0.2, 0.5, 0.0, 0.6, 0.0);
+      }
       if (pathNodes_spiral.size() > 0)
       {
         pathNodes_spiral.clear();
@@ -265,7 +285,6 @@ namespace full_coverage_path_planner
         fullPath.push_back(newPoint);
       }
     }
-
     return fullPath;
   }
 
@@ -286,7 +305,7 @@ namespace full_coverage_path_planner
     Point_t startPoint;
 
     std::vector<std::vector<bool>> grid;
-    if (!parseGrid(costmap_, grid, robot_radius_ * 2, tool_radius_ * 2, start, startPoint))
+    if (!parseGrid(costmap_, grid, (robot_radius_ * 2)/division_factor_, (tool_radius_ * 2)/division_factor_, start, startPoint))
     {
       RCLCPP_ERROR(rclcpp::get_logger("FullCoveragePathPlanner"), "Could not parse retrieved grid");
       return false;
@@ -299,7 +318,7 @@ namespace full_coverage_path_planner
                                                startPoint,
                                                spiral_cpp_metrics_.multiple_pass_counter,
                                                spiral_cpp_metrics_.visited_counter);
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "naive cpp completed!");
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Naive cpp completed!");
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Converting path to plan");
 
     parsePointlist2Plan(start, goalPoints, plan);
@@ -326,6 +345,38 @@ namespace full_coverage_path_planner
     return true;
   }
 
+  std::list<Point_t> SpiralSTC::manoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, int &division_factor)
+  {
+    std::list<Point_t> man_grids;
+    Point_t p;
+    if (division_factor == 1)
+    {
+      p = {x2, y2};
+      man_grids.push_back(p);
+    }
+    else if (division_factor_ == 3) // For now hardcoded pushback of 8 cells around {x2,y2}, including {x2,y2}...
+    {
+      int dx = x2 - x1; // 1, -1, or 0
+      int dy = y2 - y1; // 1, -1, or 0
+      p = {x2+dx, y2+dy};
+      man_grids.push_back(p);
+      if (dy == 0)
+      {
+        p = {x2+dx, y2+dy+1};
+        man_grids.push_back(p);
+        p = {x2+dx, y2+dy-1};
+        man_grids.push_back(p);
+      } else if (dx == 0)
+      {
+        p = {x2+dx+1, y2+dy};
+        man_grids.push_back(p);
+        p = {x2+dx-1, y2+dy};
+        man_grids.push_back(p);
+      }
+    }
+    return man_grids;
+  }
+
   /////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////
   ///////////////////////////// Visualization Methods /////////////////////////////////////
@@ -334,17 +385,17 @@ namespace full_coverage_path_planner
 
   void SpiralSTC::visualizeGrid(std::vector<std::vector<bool>> const &grid)
   {
-    visualization_msgs::msg::Marker gridLines;
-    gridLines.header.frame_id = global_frame_.c_str();
-    gridLines.header.stamp = rclcpp::Time();
-    gridLines.ns = "gridLines";
-    gridLines.id = 0;
-    gridLines.type = visualization_msgs::msg::Marker::LINE_LIST;
-    gridLines.action = visualization_msgs::msg::Marker::ADD;
-    gridLines.pose.orientation.w = 1.0;
-    gridLines.scale.x = 0.02;
-    gridLines.color.a = 0.5;
-    gridLines.color.r = gridLines.color.g = gridLines.color.b = 0.0;
+    visualization_msgs::msg::Marker gridlines;
+    gridlines.header.frame_id = global_frame_.c_str();
+    gridlines.header.stamp = rclcpp::Time();
+    gridlines.ns = "gridLines";
+    gridlines.id = 0;
+    gridlines.type = visualization_msgs::msg::Marker::LINE_LIST;
+    gridlines.action = visualization_msgs::msg::Marker::ADD;
+    gridlines.pose.orientation.w = 1.0;
+    gridlines.scale.x = 0.02;
+    gridlines.color.a = 0.5;
+    gridlines.color.r = gridlines.color.g = gridlines.color.b = 0.0;
 
     visualization_msgs::msg::Marker gridCubes = cubeMarker(global_frame_.c_str(), "gridCubes", 0, tile_size_, 0.3, 0.0, 0.0, 0.0);
     geometry_msgs::msg::Point p;
@@ -370,9 +421,9 @@ namespace full_coverage_path_planner
       p.x = (grid_origin_.x);
       p.y = (grid_origin_.y) + i*tile_size_;
       p.z = 0.0;
-      gridLines.points.push_back(p);
+      gridlines.points.push_back(p);
       p.x = (grid_origin_.x) + costmap_->getSizeInMetersX();
-      gridLines.points.push_back(p);
+      gridlines.points.push_back(p);
     }
 
     for (uint32_t i = 0; i < costmap_->getSizeInMetersY()/tile_size_ ; i++)
@@ -380,13 +431,13 @@ namespace full_coverage_path_planner
       p.x = (grid_origin_.x) + i*tile_size_;
       p.y = (grid_origin_.y);
       p.z = 0.0;
-      gridLines.points.push_back(p);
+      gridlines.points.push_back(p);
       p.y = (grid_origin_.y) + costmap_->getSizeInMetersY();
-      gridLines.points.push_back(p);
+      gridlines.points.push_back(p);
     }
 
     vis_pub_grid_->publish(gridCubes);
-    vis_pub_grid_->publish(gridLines);
+    vis_pub_grid_->publish(gridlines);
   }
 
   void SpiralSTC::visualizeSpirals(std::list<gridNode_t> &spiralNodes, std::string name_space, float w, float a, float r, float g, float b)

@@ -145,8 +145,8 @@ namespace full_coverage_path_planner
           if (it != goalpoints.begin())
           {
             previous_goal_.pose.orientation = new_goal.pose.orientation;
-            // republish previous goal but with new orientation to indicate change of direction
-            // useful when the plan is strictly followed with base_link
+            // Republish previous goal but with new orientation to indicate change of direction
+            // Useful when the plan is strictly followed with base_link
             plan.push_back(previous_goal_);
           }
           RCLCPP_DEBUG(rclcpp::get_logger("FullCoveragePathPlanner"), "Voila new point: x=%f, y=%f, o=%f,%f,%f,%f", new_goal.pose.position.x, new_goal.pose.position.y,
