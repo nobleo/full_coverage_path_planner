@@ -44,6 +44,9 @@ namespace full_coverage_path_planner
       // Create a publisher to visualize the plan
       plan_pub_ = node_->create_publisher<nav_msgs::msg::Path>("plan", 1);
 
+      vis_pub_grid_ = node_->create_publisher<visualization_msgs::msg::Marker>("gridOverlay", 0);
+      vis_pub_spirals_ = node_->create_publisher<visualization_msgs::msg::Marker>("spirals", 0);
+
       // Define  robot radius (radius) parameter
       double robot_radius_default = 0.5;
       declare_parameter_if_not_declared(node_, name_ + ".robot_radius", rclcpp::ParameterValue(robot_radius_default));
@@ -61,6 +64,8 @@ namespace full_coverage_path_planner
     RCLCPP_INFO(
       rclcpp::get_logger("FullCoveragePathPlanner"), "Activating plugin %s of type FullCoveragePathPlanner",
       name_.c_str());
+      vis_pub_grid_->on_activate();
+      vis_pub_spirals_->on_activate();
   }
 
   void SpiralSTC::deactivate()
@@ -143,11 +148,11 @@ namespace full_coverage_path_planner
             it = --(pathNodes.end());
             visited[y2][x2] = eNodeVisited; // Close node
             done = false;
-            // brake for loop
+            // Break for loop
             break;
           }
         }
-        // try next direction cw
+        // Try next direction cw
         dx_prev = dx;
         dx = dy;
         dy = -dx_prev;
@@ -182,12 +187,10 @@ namespace full_coverage_path_planner
     pathNodes.push_back(new_node);
     visited[y][x] = eNodeVisited;
 
-#ifdef DEBUG_PLOT
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Grid before walking is: ");
-    printGrid(grid, visited, fullPath);
-#endif
-
     pathNodes = SpiralSTC::spiral(grid, pathNodes, visited);    // First spiral fill
+
+    SpiralSTC::visualizeSpirals(pathNodes, "first_spiral", 0.2, 0.5, 0.0, 0.6, 0.0);
+
     std::list<Point_t> goals = map_2_goals(visited, eNodeOpen); // Retrieve remaining goalpoints
     // Add points to full path
     std::list<gridNode_t>::iterator it;
@@ -200,11 +203,6 @@ namespace full_coverage_path_planner
     // Remove all elements from pathNodes list except last element
     pathNodes.erase(pathNodes.begin(), --(pathNodes.end()));
 
-#ifdef DEBUG_PLOT
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Current grid after first spiral is");
-    printGrid(grid, visited, fullPath);
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "There are %d goals remaining", goals.size());
-#endif
     while (goals.size() != 0)
     {
       // Remove all elements from pathNodes list except last element.
@@ -217,9 +215,6 @@ namespace full_coverage_path_planner
       bool resign = a_star_to_open_space(grid, pathNodes.back(), 1, visited, goals, pathNodes);
       if (resign)
       {
-#ifdef DEBUG_PLOT
-        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A_star_to_open_space is resigning", goals.size());
-#endif
         break;
       }
 
@@ -237,19 +232,29 @@ namespace full_coverage_path_planner
         multiple_pass_counter--; // First point is already counted as visited
       }
 
-#ifdef DEBUG_PLOT
-      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Grid with path marked as visited is:");
-      gridNode_t SpiralStart = pathNodes.back();
-      printGrid(grid, visited, pathNodes, pathNodes.front(), pathNodes.back());
-#endif
+      gridNode_t lastNodeAstar = pathNodes.back();
 
       // Spiral fill from current position
       pathNodes = spiral(grid, pathNodes, visited);
 
-#ifdef DEBUG_PLOT
-      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Visited grid updated after spiral:");
-      printGrid(grid, visited, pathNodes, SpiralStart, pathNodes.back());
-#endif
+      // Need to extract only the spiral part for visualization
+      std::list<gridNode_t> pathNodes_copy = pathNodes; // Work with a copy so that splice() does not affect pathNodes
+      std::list<gridNode_t>:: iterator it = pathNodes_copy.begin();
+      for (const auto node : pathNodes_copy)
+      {
+        if (node.pos.x == lastNodeAstar.pos.x && node.pos.y == lastNodeAstar.pos.y)
+        {
+          break; // Break if iterator is found that matches last node of A* path
+        }
+        ++it; // Iterate one further to find starting point of new spiral
+      }
+      std::list<gridNode_t> pathNodes_spiral;
+      pathNodes_spiral.splice(pathNodes_spiral.begin(), pathNodes_copy, it, pathNodes_copy.end());
+      SpiralSTC::visualizeSpirals(pathNodes_spiral, "spiral" + std::to_string(goals.size() + 1), 0.2, 0.5, 0.0, 0.6, 0.0);
+      if (pathNodes_spiral.size() > 0)
+      {
+        pathNodes_spiral.clear();
+      }
 
       goals = map_2_goals(visited, eNodeOpen); // Retrieve remaining goalpoints
 
@@ -287,12 +292,8 @@ namespace full_coverage_path_planner
       return false;
     }
 
-#ifdef DEBUG_PLOT
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Start grid is:");
-    std::list<Point_t> printPath;
-    printPath.push_back(startPoint);
-    printGrid(grid, grid, printPath);
-#endif
+    // Grid visualization with occupied cells greyed out
+    visualizeGrid(grid);
 
     std::list<Point_t> goalPoints = spiral_stc(grid,
                                                startPoint,
@@ -323,6 +324,143 @@ namespace full_coverage_path_planner
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Elapsed time: %f", elapsed_secs);
 
     return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////// Visualization Methods /////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  void SpiralSTC::visualizeGrid(std::vector<std::vector<bool>> const &grid)
+  {
+    visualization_msgs::msg::Marker gridLines;
+    gridLines.header.frame_id = global_frame_.c_str();
+    gridLines.header.stamp = rclcpp::Time();
+    gridLines.ns = "gridLines";
+    gridLines.id = 0;
+    gridLines.type = visualization_msgs::msg::Marker::LINE_LIST;
+    gridLines.action = visualization_msgs::msg::Marker::ADD;
+    gridLines.pose.orientation.w = 1.0;
+    gridLines.scale.x = 0.02;
+    gridLines.color.a = 0.5;
+    gridLines.color.r = gridLines.color.g = gridLines.color.b = 0.0;
+
+    visualization_msgs::msg::Marker gridCubes = cubeMarker(global_frame_.c_str(), "gridCubes", 0, tile_size_, 0.3, 0.0, 0.0, 0.0);
+    geometry_msgs::msg::Point p;
+    int ix, iy;
+    int nRows = grid.size();
+    int nCols = grid[0].size();
+
+    for (iy = 0; iy < nRows; ++(iy))
+    {
+      for (ix = 0; ix < nCols; ++(ix))
+      {
+        if (grid[iy][ix] == true)
+        {
+          p.x = (ix + 0.5)*tile_size_ + grid_origin_.x;
+          p.y = (iy + 0.5)*tile_size_ + grid_origin_.y;
+          gridCubes.points.push_back(p);
+        }
+      }
+    }
+
+    for (uint32_t i = 0; i < costmap_->getSizeInMetersX()/tile_size_ ; i++)
+    {
+      p.x = (grid_origin_.x);
+      p.y = (grid_origin_.y) + i*tile_size_;
+      p.z = 0.0;
+      gridLines.points.push_back(p);
+      p.x = (grid_origin_.x) + costmap_->getSizeInMetersX();
+      gridLines.points.push_back(p);
+    }
+
+    for (uint32_t i = 0; i < costmap_->getSizeInMetersY()/tile_size_ ; i++)
+    {
+      p.x = (grid_origin_.x) + i*tile_size_;
+      p.y = (grid_origin_.y);
+      p.z = 0.0;
+      gridLines.points.push_back(p);
+      p.y = (grid_origin_.y) + costmap_->getSizeInMetersY();
+      gridLines.points.push_back(p);
+    }
+
+    vis_pub_grid_->publish(gridCubes);
+    vis_pub_grid_->publish(gridLines);
+  }
+
+  void SpiralSTC::visualizeSpirals(std::list<gridNode_t> &spiralNodes, std::string name_space, float w, float a, float r, float g, float b)
+  {
+    visualization_msgs::msg::Marker spiral = lineStrip(global_frame_.c_str(), name_space, 0, w, a, r, g, b);
+    geometry_msgs::msg::Point p;
+    p.z = 0.0;
+    for (const auto spiralNode : spiralNodes)
+    {
+      p.x = (spiralNode.pos.x + 0.5)*tile_size_ + grid_origin_.x;
+      p.y = (spiralNode.pos.y + 0.5)*tile_size_ + grid_origin_.y;
+      spiral.points.push_back(p);
+    }
+    vis_pub_spirals_->publish(spiral);
+  }
+
+  visualization_msgs::msg::Marker SpiralSTC::sphereMarker(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b)
+  {
+    visualization_msgs::msg::Marker sphereList;
+    sphereList.header.frame_id = frame_id;
+    sphereList.header.stamp = rclcpp::Time();
+    sphereList.ns = name_space;
+    sphereList.action = visualization_msgs::msg::Marker::ADD;
+    sphereList.pose.orientation.w = 1.0;
+    sphereList.id = id;
+    sphereList.type = visualization_msgs::msg::Marker::SPHERE_LIST;
+    sphereList.scale.x = size;
+    sphereList.scale.y = size;
+    sphereList.scale.z = size;
+    sphereList.color.a = a;
+    sphereList.color.r = r;
+    sphereList.color.g = g;
+    sphereList.color.b = b;
+    return sphereList;
+  }
+
+  visualization_msgs::msg::Marker SpiralSTC::cubeMarker(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b)
+  {
+    visualization_msgs::msg::Marker cubeList;
+    cubeList.header.frame_id = frame_id;
+    cubeList.header.stamp = rclcpp::Time();
+    cubeList.ns = name_space;
+    cubeList.action = visualization_msgs::msg::Marker::ADD;
+    cubeList.pose.orientation.w = 1.0;
+    cubeList.id = id;
+    cubeList.type = visualization_msgs::msg::Marker::CUBE_LIST;
+    cubeList.scale.x = size;
+    cubeList.scale.y = size;
+    cubeList.scale.z = size;
+    cubeList.color.a = a;
+    cubeList.color.r = r;
+    cubeList.color.g = g;
+    cubeList.color.b = b;
+    return cubeList;
+  }
+
+  visualization_msgs::msg::Marker SpiralSTC::lineStrip(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b)
+  {
+    visualization_msgs::msg::Marker lineStrip;
+    lineStrip.header.frame_id = frame_id;
+    lineStrip.header.stamp = rclcpp::Time();
+    lineStrip.ns = name_space;
+    lineStrip.action = visualization_msgs::msg::Marker::ADD;
+    lineStrip.pose.orientation.w = 1.0;
+    lineStrip.id = id;
+    lineStrip.type = visualization_msgs::msg::Marker::LINE_STRIP;
+    lineStrip.scale.x = size;
+    lineStrip.scale.y = size;
+    lineStrip.scale.z = size;
+    lineStrip.color.a = a;
+    lineStrip.color.r = r;
+    lineStrip.color.g = g;
+    lineStrip.color.b = b;
+    return lineStrip;
   }
 } // namespace full_coverage_path_planner
 

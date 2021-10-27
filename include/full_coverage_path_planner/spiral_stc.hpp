@@ -24,6 +24,9 @@
 #include <nav_msgs/msg/path.hpp>
 #include <nav_msgs/srv/get_map.hpp>
 
+// Temporary for visualization:
+#include "visualization_msgs/msg/marker.hpp"
+
 using namespace std::chrono_literals;
 using std::string;
 namespace full_coverage_path_planner
@@ -78,6 +81,15 @@ namespace full_coverage_path_planner
         const geometry_msgs::msg::PoseStamped &start,
         const geometry_msgs::msg::PoseStamped &goal) override;
 
+    std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> vis_pub_grid_;
+    std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> vis_pub_spirals_;
+
+    visualization_msgs::msg::Marker sphereMarker(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b);
+    visualization_msgs::msg::Marker cubeMarker(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b);
+    visualization_msgs::msg::Marker lineStrip(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b);
+    void visualizeGrid(std::vector<std::vector<bool>> const &grid);
+    void visualizeSpirals(std::list<gridNode_t> &spiralNodes, std::string name_space, float w, float a, float r, float g, float b);
+
   protected:
     /**
      * @brief Given a goal pose in the world, compute a plan
@@ -103,7 +115,7 @@ namespace full_coverage_path_planner
      * @param visited all the nodes visited by the spiral
      * @return list of nodes that form the spiral
      */
-    static std::list<gridNode_t> spiral(std::vector<std::vector<bool>> const &grid, std::list<gridNode_t> &init,
+    std::list<gridNode_t> spiral(std::vector<std::vector<bool>> const &grid, std::list<gridNode_t> &init,
                                         std::vector<std::vector<bool>> &visited);
 
     /**
@@ -114,10 +126,7 @@ namespace full_coverage_path_planner
      * @param init
      * @return
      */
-    static std::list<Point_t> spiral_stc(std::vector<std::vector<bool>> const &grid,
-                                         Point_t &init,
-                                         int &multiple_pass_counter,
-                                         int &visited_counter);
+    std::list<Point_t> spiral_stc(std::vector<std::vector<bool>> const &grid, Point_t &init,
+                                  int &multiple_pass_counter, int &visited_counter);
   };
-
 }  // namespace full_coverage_path_planner

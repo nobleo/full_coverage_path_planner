@@ -168,7 +168,6 @@ bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_
               };
               newPath.push_back(new_node);
               closed[new_node.pos.y][new_node.pos.x] = eNodeVisited;  // New node is now used in a path and thus visited
-
 #ifdef DEBUG_PLOT
               std::cout << "A*: Marked new_node " << new_node << " as eNodeVisited (true)" << std::endl;
               std::cout << "A*: Add path from " << newPath.front().pos << " to " << newPath.back().pos
@@ -198,95 +197,6 @@ bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_
         }
       }
     }
-  }
-}
-
-void printGrid(std::vector<std::vector<bool> > const& grid, std::vector<std::vector<bool> > const& visited,
-               std::list<Point_t> const& path)
-{
-  for (int iy = (int) grid.size() - 1; iy >= 0; --iy)
-  {
-    for (int ix = 0; ix < (int) grid[0].size(); ++ix)
-    {
-      if (visited[iy][ix])
-      {
-        if (ix == path.front().x && iy == path.front().y)
-        {
-          std::cout << "\033[1;32m▓\033[0m";  // Show starting position in green color
-        }
-        else if (ix == path.back().x && iy == path.back().y)
-        {
-          std::cout << "\033[1;31m▓\033[0m";  // Show stopping position in red color
-        }
-        else if (visited[iy][ix] && grid[iy][ix])
-        {
-          std::cout << "\033[1;33m▓\033[0m";  // Show walls in yellow color
-        }
-        else
-        {
-          std::cout << "\033[1;36m▓\033[0m";
-        }
-      }
-      else
-      {
-        std::cout << "\033[1;37m▓\033[0m";
-      }
-    }
-    std::cout << "\n";
-  }
-}
-
-void printGrid(std::vector<std::vector<bool> > const& grid, std::vector<std::vector<bool> > const& visited,
-               gridNode_t start, gridNode_t end)
-{
-  for (int iy = (int) grid.size() - 1; iy >= 0; --iy)
-  {
-    for (int ix = 0; ix < (int) grid[0].size(); ++ix)
-    {
-      if (visited[iy][ix])
-      {
-        if (ix == start.pos.x && iy == start.pos.y)
-        {
-          std::cout << "\033[1;32m▓\033[0m";  // Show starting position in green color
-        }
-        else if (ix == end.pos.x && iy == end.pos.y)
-        {
-          std::cout << "\033[1;31m▓\033[0m";  // Show stopping position in red color
-        }
-        else if (visited[iy][ix] && grid[iy][ix])
-        {
-          std::cout << "\033[1;33m▓\033[0m";  // Show walls in yellow color
-        }
-        else
-        {
-          std::cout << "\033[1;36m▓\033[0m";
-        }
-      }
-      else
-      {
-        std::cout << "\033[1;37m▓\033[0m";
-      }
-    }
-    std::cout << "\n";
-  }
-}
-
-void printGrid(std::vector<std::vector<bool> > const& grid)
-{
-  for (int iy = (int) grid.size() - 1; iy >= 0; --iy)
-  {
-    for (int ix = 0; ix < (int) grid[0].size(); ++ix)
-    {
-      if (grid[iy][ix])
-      {
-        std::cout << "\033[1;36m▓\033[0m";
-      }
-      else
-      {
-        std::cout << "\033[1;37m▓\033[0m";
-      }
-    }
-    std::cout << "\n";
   }
 }
 

@@ -42,7 +42,6 @@ inline std::ostream &operator << (std::ostream &os, gridNode_t &g)
   return os << "gridNode_t(" << g.cost << ", " << g.he << ", " << g.pos  << ")";
 }
 
-
 typedef struct
 {
   double x, y;
@@ -86,33 +85,6 @@ int distanceSquared(const Point_t &p1, const Point_t &p2);
 bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_t init, int cost,
                           std::vector<std::vector<bool> > &visited, std::list<Point_t> const &open_space,
                           std::list<gridNode_t> &pathNodes);
-
-/**
- * Print a grid according to the internal representation
- * @param grid
- * @param visited
- * @param fullPath
- */
-void printGrid(std::vector<std::vector<bool> > const& grid,
-               std::vector<std::vector<bool> > const& visited,
-               std::list<Point_t> const& path);
-
-/**
- * Print a grid according to the internal representation
- * @param grid
- * @param visited
- * @param start
- * @param end
- */
-void printGrid(std::vector<std::vector<bool> > const& grid,
-               std::vector<std::vector<bool> > const& visited,
-               gridNode_t start,
-               gridNode_t end);
-
-/**
- * Print a 2D array of bools to stdout
- */
-void printGrid(std::vector<std::vector<bool> > const& grid);
 
 /**
  * Convert 2D grid of bools to a list of Point_t

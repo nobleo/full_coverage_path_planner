@@ -23,8 +23,6 @@
 
 using std::string;
 
-// #define DEBUG_PLOT
-
 #ifndef dabs
 #define dabs(a) ((a) >= 0 ? (a) : -(a))
 #endif
@@ -108,6 +106,7 @@ namespace full_coverage_path_planner
       q.setRPY(0, 0, yaw);
       return tf2::toMsg(q);
     }
+
     nav2_util::LifecycleNode::SharedPtr node_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
     double robot_radius_;

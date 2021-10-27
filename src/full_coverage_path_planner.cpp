@@ -27,8 +27,6 @@
  *   O   --->> x-axis
  */
 
-// #define DEBUG_PLOT
-
 // Default Constructor
 namespace full_coverage_path_planner
 {
