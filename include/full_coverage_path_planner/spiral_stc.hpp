@@ -23,9 +23,9 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <nav_msgs/srv/get_map.hpp>
-
-// Temporary for visualization:
 #include "visualization_msgs/msg/marker.hpp"
+#include <boost/geometry.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 
 using namespace std::chrono_literals;
 using std::string;
@@ -33,15 +33,28 @@ namespace full_coverage_path_planner
 {
   class SpiralSTC : public nav2_core::GlobalPlanner , private full_coverage_path_planner::FullCoveragePathPlanner
   {
+  private:
+    // typedef boost::geometry::model::ring<geometry_msgs::msg::Point> polygon_t;
+
+    // inline polygon_t union_(polygon_t polygon1, polygon_t polygon2)
+    // {
+    //   std::vector<polygon_t> output_vec;
+    //   boost::geometry::union_(polygon1, polygon2, output_vec);
+    //   return output_vec.at(0);  // Only first vector element is filled
+    // }
+
   public:
+
+    int test_counter = 0;
+
     /**
-   * @brief constructor
-   */
+     * @brief constructor
+     */
     SpiralSTC();
 
     /**
-   * @brief destructor
-   */
+     * @brief destructor
+     */
     ~SpiralSTC();
 
     /**
@@ -50,7 +63,7 @@ namespace full_coverage_path_planner
      * @param name Name of plugin map
      * @param tf Shared ptr of TF2 buffer
      * @param costmap_ros Costmap2DROS object
-    */
+     */
     void configure(
         const rclcpp_lifecycle::LifecycleNode::WeakPtr &parent,
         std::string name, std::shared_ptr<tf2_ros::Buffer> tf,
@@ -87,8 +100,15 @@ namespace full_coverage_path_planner
     visualization_msgs::msg::Marker sphereMarker(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b);
     visualization_msgs::msg::Marker cubeMarker(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b);
     visualization_msgs::msg::Marker lineStrip(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b);
-    void visualizeGrid(std::vector<std::vector<bool>> const &grid);
+    void visualizeGrid(std::vector<std::vector<bool>> const &grid, std::string name_space, float a, float r, float g, float b);
+    void visualizeGridlines();
     void visualizeSpirals(std::list<gridNode_t> &spiralNodes, std::string name_space, float w, float a, float r, float g, float b);
+
+    nav2_costmap_2d::Costmap2D coarse_grid_;
+    nav2_costmap_2d::Costmap2DROS *coarse_grid_ros_;
+
+    // New variable to divide to pick tile size as tool width divided by preferably an uneven number
+    int division_factor_ = 5;
 
   protected:
     /**
@@ -129,6 +149,6 @@ namespace full_coverage_path_planner
     std::list<Point_t> spiral_stc(std::vector<std::vector<bool>> const &grid, Point_t &init,
                                   int &multiple_pass_counter, int &visited_counter); // Aron: was static
 
-    std::list<Point_t> manoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, int &division_factor);
+    std::vector<nav2_costmap_2d::MapLocation>  manoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1);
   };
 }  // namespace full_coverage_path_planner

@@ -193,8 +193,9 @@ namespace full_coverage_path_planner
   {
     size_t nodeRow;
     size_t nodeColl;
-    size_t nodeSize = dmax(floor(toolRadius / cpp_costmap->getResolution()), 1);       // Size of node in pixels/units
-    size_t robotNodeSize = dmax(floor(robotRadius / cpp_costmap->getResolution()), 1); // RobotRadius in pixels/units
+    // These two below were floor()...
+    size_t nodeSize = dmax(ceil(toolRadius / cpp_costmap->getResolution()), 1);       // Size of node in pixels/units
+    size_t robotNodeSize = dmax(ceil(robotRadius / cpp_costmap->getResolution()), 1); // RobotRadius in pixels/units
     size_t nRows = cpp_costmap->getSizeInCellsY();
     size_t nCols = cpp_costmap->getSizeInCellsX();
     unsigned char * cpp_costmap_data = cpp_costmap->getCharMap();
@@ -208,6 +209,8 @@ namespace full_coverage_path_planner
     // Save map origin and scaling
     cpp_costmap->mapToWorld(0, 0, grid_origin_.x, grid_origin_.y);
     tile_size_ = nodeSize * cpp_costmap->getResolution(); // Size of a tile in meters
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), ("Costmap resolution: " + std::to_string(cpp_costmap->getResolution())).c_str());
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), ("Tile size in meters: " + std::to_string(tile_size_)).c_str());
     // Scale starting point
     scaledStart.x = static_cast<unsigned int>(clamp((realStart.pose.position.x - grid_origin_.x) / tile_size_, 0.0,
                                                     floor(cpp_costmap->getSizeInCellsX() / tile_size_)));

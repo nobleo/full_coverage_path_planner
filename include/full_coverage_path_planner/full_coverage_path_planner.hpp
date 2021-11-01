@@ -108,9 +108,6 @@ namespace full_coverage_path_planner
       return tf2::toMsg(q);
     }
 
-    // Aron: new variable to divide to pick tile_size as tool_width/uneven number
-    int division_factor_ = 3; // uneven number here
-
     nav2_util::LifecycleNode::SharedPtr node_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
     double robot_radius_;
