@@ -189,7 +189,8 @@ namespace full_coverage_path_planner
                                           double robotRadius,
                                           double toolRadius,
                                           geometry_msgs::msg::PoseStamped const &realStart,
-                                          Point_t &scaledStart)
+                                          Point_t &scaledStart,
+                                          double &yawStart)
   {
     size_t nodeRow;
     size_t nodeColl;
@@ -216,6 +217,13 @@ namespace full_coverage_path_planner
                                                     floor(cpp_costmap->getSizeInCellsX() / tile_size_)));
     scaledStart.y = static_cast<unsigned int>(clamp((realStart.pose.position.y - grid_origin_.y) / tile_size_, 0.0,
                                                     floor(cpp_costmap->getSizeInCellsY() / tile_size_)));
+    tf2::Quaternion q;
+    q.setW(realStart.pose.orientation.w);
+    q.setX(realStart.pose.orientation.x);
+    q.setY(realStart.pose.orientation.y);
+    q.setZ(realStart.pose.orientation.z);
+    yawStart = q.getAngle();
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), ("Starting angle according to quaternion: " + std::to_string(yawStart)).c_str());
 
     // Scale grid
     for (size_t iy = 0; iy < nRows; iy = iy + nodeSize)

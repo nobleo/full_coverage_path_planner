@@ -93,7 +93,8 @@ namespace full_coverage_path_planner
                    double robotRadius,
                    double toolRadius,
                    geometry_msgs::msg::PoseStamped const &realStart,
-                   Point_t &scaledStart);
+                   Point_t &scaledStart,
+                   double &yawStart);
 
     /**
      * @brief Create Quaternion from Yaw
