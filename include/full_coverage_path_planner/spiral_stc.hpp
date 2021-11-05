@@ -24,28 +24,27 @@
 #include <nav_msgs/msg/path.hpp>
 #include <nav_msgs/srv/get_map.hpp>
 #include "visualization_msgs/msg/marker.hpp"
-#include <boost/geometry.hpp>
-#include <boost/thread/recursive_mutex.hpp>
 
 using namespace std::chrono_literals;
 using std::string;
+
 namespace full_coverage_path_planner
 {
   class SpiralSTC : public nav2_core::GlobalPlanner , private full_coverage_path_planner::FullCoveragePathPlanner
   {
-  private:
-    // typedef boost::geometry::model::ring<geometry_msgs::msg::Point> polygon_t;
-
-    // inline polygon_t union_(polygon_t polygon1, polygon_t polygon2)
-    // {
-    //   std::vector<polygon_t> output_vec;
-    //   boost::geometry::union_(polygon1, polygon2, output_vec);
-    //   return output_vec.at(0);  // Only first vector element is filled
-    // }
-
   public:
 
-    int test_counter = 0;
+    // New variable to divide to pick tile size as tool width divided by preferably an uneven number
+    int division_factor_ = 5;
+    int max_overlap_ = 4;
+
+    // Temporary for debugging purposes
+    int spiral_counter_ = 0;
+
+    // Relative manoeuvre footprints (in robot frame)
+    std::vector<nav2_costmap_2d::MapLocation> left_turn_;
+    std::vector<nav2_costmap_2d::MapLocation> forward_;
+    std::vector<nav2_costmap_2d::MapLocation> right_turn_;
 
     /**
      * @brief constructor
@@ -97,18 +96,15 @@ namespace full_coverage_path_planner
     std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> vis_pub_grid_;
     std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> vis_pub_spirals_;
 
-    visualization_msgs::msg::Marker sphereMarker(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b);
     visualization_msgs::msg::Marker cubeMarker(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b);
     visualization_msgs::msg::Marker lineStrip(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b);
+
     void visualizeGrid(std::vector<std::vector<bool>> const &grid, std::string name_space, float a, float r, float g, float b);
     void visualizeGridlines();
     void visualizeSpirals(std::list<gridNode_t> &spiralNodes, std::string name_space, float w, float a, float r, float g, float b);
 
     nav2_costmap_2d::Costmap2D coarse_grid_;
     nav2_costmap_2d::Costmap2DROS *coarse_grid_ros_;
-
-    // New variable to divide to pick tile size as tool width divided by preferably an uneven number
-    int division_factor_ = 3;
 
   protected:
     /**
@@ -132,11 +128,12 @@ namespace full_coverage_path_planner
      * Find a path that spirals inwards from init until an obstacle is seen in the grid
      * @param grid 2D grid of bools. true == occupied/blocked/obstacle
      * @param init start position
+     * @param yawStart start orientation
      * @param visited all the nodes visited by the spiral
      * @return list of nodes that form the spiral
      */
     std::list<gridNode_t> spiral(std::vector<std::vector<bool>> const &grid, std::list<gridNode_t> &init,
-                                 double &yawStart, std::vector<std::vector<bool>> &visited); // Aron: was static
+                                 double &yaw_start, std::vector<std::vector<bool>> &visited);
 
     /**
      * Perform Spiral-STC (Spanning Tree Coverage) coverage path planning.
@@ -146,10 +143,11 @@ namespace full_coverage_path_planner
      * @param init
      * @return
      */
-    std::list<Point_t> spiral_stc(std::vector<std::vector<bool>> const &grid, Point_t &init, double &yawStart,
-                                  int &multiple_pass_counter, int &visited_counter); // Aron: was static
+    std::list<Point_t> spiral_stc(std::vector<std::vector<bool>> const &grid, Point_t &init, double &yaw_start,
+                                  int &multiple_pass_counter, int &visited_counter);
 
-    std::vector<nav2_costmap_2d::MapLocation> getFootprintCells(int &x_m, int &y_m, double &yaw);
-    std::vector<nav2_costmap_2d::MapLocation> getManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1);
+    bool FootprintCells(int &x_m, int &y_m, double &yaw, std::vector<nav2_costmap_2d::MapLocation> &footprint_cells);
+
+    bool ManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
   };
 }  // namespace full_coverage_path_planner

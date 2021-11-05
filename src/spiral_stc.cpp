@@ -36,17 +36,14 @@ namespace full_coverage_path_planner
       // Currently this plugin does not use the costmap, instead request a map from a server
       // This will change in the future
       costmap_ = costmap_ros->getCostmap();
-      // coarse_grid_ros_= costmap_ros.get();
       coarse_grid_ros_= costmap_ros.get();
-      //coarse_grid_ros_= &(costmap_ros.get());
       global_frame_ = costmap_ros->getGlobalFrameID();
 
       RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"),
                   "Configuring plugin %s of type NavfnPlanner", name_.c_str());
 
-      // Create a publisher to visualize the plan
+      // Create publishers to visualize the plan
       plan_pub_ = node_->create_publisher<nav_msgs::msg::Path>("plan", 1);
-
       vis_pub_grid_ = node_->create_publisher<visualization_msgs::msg::Marker>("gridOverlay", 0);
       vis_pub_spirals_ = node_->create_publisher<visualization_msgs::msg::Marker>("spirals", 0);
 
@@ -67,8 +64,8 @@ namespace full_coverage_path_planner
     RCLCPP_INFO(
       rclcpp::get_logger("FullCoveragePathPlanner"), "Activating plugin %s of type FullCoveragePathPlanner",
       name_.c_str());
-      vis_pub_grid_->on_activate(); // Aron: necessary??
-      vis_pub_spirals_->on_activate(); // Aron: necessary??
+    vis_pub_grid_->on_activate();
+    vis_pub_spirals_->on_activate();
   }
 
   void SpiralSTC::deactivate()
@@ -76,8 +73,8 @@ namespace full_coverage_path_planner
     RCLCPP_INFO(
       rclcpp::get_logger("FullCoveragePathPlanner"), "Deactivating plugin %s of type FullCoveragePathPlanner",
       name_.c_str());
-      vis_pub_grid_->on_deactivate(); // Aron: necessary??
-      vis_pub_spirals_->on_deactivate(); // Aron: necessary??
+    vis_pub_grid_->on_deactivate();
+    vis_pub_spirals_->on_deactivate();
   }
 
   void SpiralSTC::cleanup()
@@ -85,7 +82,7 @@ namespace full_coverage_path_planner
     RCLCPP_INFO(
       rclcpp::get_logger("FullCoveragePathPlanner"), "Cleaning up plugin %s of type FullCoveragePathPlanner",
       name_.c_str());
-    // TODO(clopez) Add proper cleanup
+    // TODO(CesarLopez) Add proper cleanup
   }
 
   nav_msgs::msg::Path SpiralSTC::createPlan(
@@ -102,25 +99,45 @@ namespace full_coverage_path_planner
   }
 
   std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool>> const &grid, std::list<gridNode_t> &init,
-                                          double &yawStart, std::vector<std::vector<bool>> &visited)
+                                          double &yaw_start, std::vector<std::vector<bool>> &visited)
   {
-    int nRows = grid.size();
-    int nCols = grid[0].size();
     std::list<gridNode_t> pathNodes(init); // Copy incoming list to pathNodes
     std::list<gridNode_t>::iterator it = --(pathNodes.end()); // Create iterator and let it point to the last element of end
     if (pathNodes.size() > 1) // If list is length 1, keep iterator at end
+    {
       it--;                   // Let iterator point to second to last element
+    }
 
     gridNode_t prev = *(it);
-    std::vector<nav2_costmap_2d::MapLocation> man_grids, visited_after_man;
+
+    if (pathNodes.size() > 1)
+    {
+      int dx = pathNodes.back().pos.x - prev.pos.x;
+      int dy = pathNodes.back().pos.y - prev.pos.y;
+      yaw_start = std::atan2(dy,dx); // Overwrite input yaw_start one pathNodes is larger than 1
+    }
+
+    // Mark initial footprint as visited
+    gridNode_t spiral_start = pathNodes.back();
+    std::vector<nav2_costmap_2d::MapLocation> init_cells;
+    if (!FootprintCells(spiral_start.pos.x, spiral_start.pos.y, yaw_start, init_cells))
+    {
+      RCLCPP_ERROR(rclcpp::get_logger("FullCoveragePathPlanner"), "Starting footprint seems to be out of bounds!");
+    }
+    for (auto const cell : init_cells)
+    {
+      visited[cell.y][cell.x] = eNodeVisited;
+    }
+
+    std::vector<nav2_costmap_2d::MapLocation> man_grids;
     bool done = false;
     while (!done)
     {
-      // Initialize spiral direction towards y-axis
+      // Initialize spiral direction towards robot's y-axis
       int dx = 0;
       int dy = 1;
       int dx_prev;
-      double yaw = yawStart; // For now indicates no starting orientation is known
+      double yaw = yaw_start;
       if (it != pathNodes.begin())
       {
         // Turn counter-clockwise
@@ -131,54 +148,89 @@ namespace full_coverage_path_planner
         dx = -dy;
         dy = dx_prev;
       }
-      // This condition might change in the loop below
-      done = true;
-      // Loop over the four possible directions: forward, right, backward, left
-      for (size_t i = 0; i < 4; ++i)
+      done = true; // This condition might change in the loop below
+      // Loop over the three possible directions: left, forward, right (directions taken before counter-clockwise turn)
+      for (size_t i = 0; i < 3; ++i)
       {
         int x1 = pathNodes.back().pos.x;
         int y1 = pathNodes.back().pos.y;
         int x2 = pathNodes.back().pos.x + dx;
         int y2 = pathNodes.back().pos.y + dy;
-        man_grids = getManoeuvreFootprint(x1, y1, x2, y2, yaw);
-        if (test_counter < 1)
+
+        // Compute grids to be covered by the manoeuvre and check if they are in map bounds
+        man_grids.clear();
+
+        // if (!ManoeuvreFootprint(x1, y1, x2, y2, yaw, man_grids))
+        // {
+        //   RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoevre out of bounds, looking in other directions...");
+        //   continue;
+        // }
+
+        // nav2_costmap_2d::MapLocation * left_turn = &left_turn_;
+        // nav2_costmap_2d::MapLocation * forward = &forward_;
+        // nav2_costmap_2d::MapLocation * right_turn = &right_turn_;
+
+        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoeuvre from (x=%d, y=%d, yaw=%f) to (x=%d, y=%d, yaw=?)", x1, y1, yaw, x2, y2);
+
+        // Apply rotation to the relative manoeuvre cells to convert from robot frame to world frame
+        if (i == 0) // Relative left turn manoeuvre
         {
-          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Showing manoeuvre grids once..........................");
-          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), ("Manoeuvre grids size: " + std::to_string(man_grids.size())).c_str());
-          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), ("x1: " + std::to_string(x1) + ", y1: " + std::to_string(y1) + ", yaw: " + std::to_string(yaw)).c_str());
-          for (auto const grid : man_grids)
+          man_grids.resize(left_turn_.size());
+          for (uint i = 0; i < left_turn_.size(); i++)
           {
-            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), ("man_grid: {" + std::to_string(grid.x) + ", " + std::to_string(grid.y) + "}").c_str());
+            man_grids[i].x = x1 + static_cast<int>(cos(yaw))*left_turn_[i].x - static_cast<int>(sin(yaw))*left_turn_[i].y;
+            man_grids[i].y = y1 + static_cast<int>(sin(yaw))*left_turn_[i].x + static_cast<int>(cos(yaw))*left_turn_[i].y;
           }
-          test_counter++;
         }
-        // Check if entire footprint falls inside grid limits
-        if (x2 >= 0 + (division_factor_-1)/2 && x2 < nCols - (division_factor_-1)/2 && y2 >= 0 + (division_factor_-1)/2 && y2 < nRows - (division_factor_-1)/2)
+        else if (i == 1) // Relative forward manoeuvre
         {
-          bool man_is_free = true;
-          for (const auto man_grid : man_grids)
+          man_grids.resize(forward_.size());
+          for (uint i = 0; i < forward_.size(); i++)
           {
-            if (!(grid[man_grid.y][man_grid.x] == eNodeOpen && visited[man_grid.y][man_grid.x] == eNodeOpen))
-            {
-              man_is_free = false;
-              break;
-            }
+            man_grids[i].x = x1 + static_cast<int>(cos(yaw))*forward_[i].x - static_cast<int>(sin(yaw))*forward_[i].y;
+            man_grids[i].y = y1 + static_cast<int>(sin(yaw))*forward_[i].x + static_cast<int>(cos(yaw))*forward_[i].y;
           }
-          if (man_is_free)
+        }
+        else if (i == 2) // Relative right turn manoeuvre
+        {
+          man_grids.resize(right_turn_.size());
+          for (uint i = 0; i < right_turn_.size(); i++)
           {
-            Point_t new_point = {x2, y2};
-            gridNode_t new_node = {new_point, 0, 0};
-            prev = pathNodes.back();
-            pathNodes.push_back(new_node);
-            it = --(pathNodes.end());
-            for (const auto man_grid : man_grids)
-            {
-              visited[man_grid.y][man_grid.x] = eNodeVisited;
-            }
-            done = false;
-            // brake for loop
+            man_grids[i].x = x1 + static_cast<int>(cos(yaw))*right_turn_[i].x - static_cast<int>(sin(yaw))*right_turn_[i].y;
+            man_grids[i].y = y1 + static_cast<int>(sin(yaw))*right_turn_[i].x + static_cast<int>(cos(yaw))*right_turn_[i].y;
+          }
+        }
+
+        // TODO(Aron) Check if man_grids is in bound or not here
+
+        bool man_is_free = true; // This condition might change in the loop below
+        int overlap = 0; // Keep track of the overlap with already visited grids
+        for (const auto man_grid : man_grids)
+        {
+          if (grid[man_grid.y][man_grid.x] == eNodeVisited && visited[man_grid.y][man_grid.x] == eNodeVisited)
+          {
+            man_is_free = false;
             break;
           }
+          else if (grid[man_grid.y][man_grid.x] == eNodeOpen && visited[man_grid.y][man_grid.x] == eNodeVisited)
+          {
+            overlap++;
+          }
+        }
+        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "--> with size=%lu of which %d are overlapping", man_grids.size(), overlap);
+        if (man_is_free && overlap <= max_overlap_)
+        {
+          Point_t new_point = {x2, y2};
+          gridNode_t new_node = {new_point, 0, 0};
+          prev = pathNodes.back();
+          pathNodes.push_back(new_node);
+          it = --(pathNodes.end());
+          for (const auto man_grid : man_grids)
+          {
+            visited[man_grid.y][man_grid.x] = eNodeVisited;
+          }
+          done = false;
+          break;
         }
         // Try next direction clockwise
         dx_prev = dx;
@@ -191,20 +243,18 @@ namespace full_coverage_path_planner
 
   std::list<Point_t> SpiralSTC::spiral_stc(std::vector<std::vector<bool>> const &grid,
                                            Point_t &init,
-                                           double &yawStart,
+                                           double &yaw_start,
                                            int &multiple_pass_counter,
                                            int &visited_counter)
   {
-    // Initial node is initially set as visited so it does not count
-    multiple_pass_counter = 0;
-    visited_counter = 0; // TODO(Aron): currently these counters don't work due to the footprint
+    multiple_pass_counter = 0; // Initial node is initially set as visited so it does not count
+    visited_counter = 0; // TODO(Aron): currently these counters don't work properly due to the footprint
 
     std::vector<std::vector<bool>> visited;
     visited = grid; // Copy grid matrix
-    int x = init.x;
-    int y = init.y;
-
-    Point_t new_point = {x, y};
+    int init_x = init.x;
+    int init_y = init.y;
+    Point_t new_point = {init_x, init_y};
     gridNode_t new_node =
         {
             new_point, // Point: x,y
@@ -215,41 +265,36 @@ namespace full_coverage_path_planner
     std::list<Point_t> fullPath;
     pathNodes.push_back(new_node);
 
-    std::vector<nav2_costmap_2d::MapLocation> init_cells = getFootprintCells(x, y, yawStart);
-
-    for (auto const cell : init_cells)
-    {
-      visited[cell.y][cell.x] = eNodeVisited;
-    }
-
-    // visited[y][x] = eNodeVisited;  // TODO(Aron): Set initial footprint as visited
-
-    pathNodes = spiral(grid, pathNodes, yawStart, visited);    // First spiral fill
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "!!!!!! Starting a spiral from (x=%d, y=%d, yaw=%f) !!!!!!", init_x, init_y, yaw_start);
+    pathNodes = spiral(grid, pathNodes, yaw_start, visited); // First spiral fill
 
     visualizeSpirals(pathNodes, "first_spiral", 0.2, 0.5, 0.0, 0.6, 0.0);
 
     std::list<Point_t> goals = map_2_goals(visited, eNodeOpen); // Retrieve remaining goalpoints
+
     for (const auto pathNode : pathNodes) // Add points to full path
     {
       Point_t newPoint = {pathNode.pos.x, pathNode.pos.y};
       visited_counter++;
       fullPath.push_back(newPoint);
     }
-    pathNodes.erase(pathNodes.begin(), --(pathNodes.end())); // Remove all elements from pathNodes list except last element
 
     while (goals.size() != 0)
     {
-      // Remove all elements from pathNodes list except last element.
+      // Remove all elements from pathNodes list except last element
       // The last point is the starting point for a new search and A* extends the path from there on
       pathNodes.erase(pathNodes.begin(), --(pathNodes.end()));
       visited_counter--; // First point is already counted as visited
-      // Plan to closest open Node using A*.  `goals` is essentially the map, so we use `goals`
+
+      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "!!!!!! Starting an A* path from (x=%d, y=%d, yaw=?) !!!!!!", pathNodes.back().pos.x, pathNodes.back().pos.y);
+      // Plan to closest open Node using A*. Here, `goals` is essentially the map, so we use `goals`
       // to determine the distance from the end of a potential path to the nearest free space
-      bool resign = a_star_to_open_space(grid, pathNodes.back(), 1, visited, goals, pathNodes);
+      bool resign = a_star_to_open_space(grid, pathNodes.back(), 1, visited, goals, pathNodes); // TODO(Aron): A* plans as a differential drive robot with a 1x1 grid footprint
       if (resign)
       {
         break;
       }
+      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "--> size of A* path to closest open Node is %lu", pathNodes.size());
 
       // Update visited grid
       for (const auto pathNode : pathNodes)
@@ -258,41 +303,45 @@ namespace full_coverage_path_planner
         {
           multiple_pass_counter++;
         }
-        visited[pathNode.pos.y][pathNode.pos.x] = eNodeVisited; // TODO(Aron): this is done in both spiral() and here!
+        visited[pathNode.pos.y][pathNode.pos.x] = eNodeVisited; // TODO(Aron): not done according to footprint for A* path now
       }
       if (pathNodes.size() > 0)
       {
         multiple_pass_counter--; // First point is already counted as visited
       }
 
-      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "NOTE: BREAK INSERTED TO ONLY PLAN ONE SPIRAL!!!!!!!!!!!!!!!!!!");
+      spiral_counter_++; // Count number of spirals planned
+      if (spiral_counter_ > 1)
+      {
+      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "@@@@@@ BREAK INSERTED TO ONLY PLAN CERTAIN AMOUNT OF SPIRALS @@@@@@"); // For debugging purposes
       break;
+      }
 
-      gridNode_t lastNodeAstar = pathNodes.back();
+      gridNode_t lastNodeAstar = pathNodes.back(); // Save the value of the final node of the A star path to compare to later
 
+      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "!!!!!! Starting a spiral from (x=%d, y=%d, yaw=?) !!!!!!", pathNodes.back().pos.x, pathNodes.back().pos.y);
       // Spiral fill from current position (added to A* transition path)
-      pathNodes = spiral(grid, pathNodes, yawStart, visited); // It should overwrite yawStart if its not a first spiral
+      pathNodes = spiral(grid, pathNodes, yaw_start, visited); // It overwrites yaw_start if its not a first spiral
 
       // Need to extract only the spiral part for visualization
-      std::list<gridNode_t> pathNodes_copy = pathNodes; // Work with a copy so that splice() does not affect pathNodes
-      std::list<gridNode_t>:: iterator it = pathNodes_copy.begin();
-      for (const auto node : pathNodes_copy)
+      std::list<gridNode_t> pathNodes_spiral = pathNodes; // Work with a copy so that pathNodes is not affected later
+      std::list<gridNode_t>::iterator it = pathNodes_spiral.begin();
+      for (const auto node : pathNodes_spiral)
       {
         if (node.pos.x == lastNodeAstar.pos.x && node.pos.y == lastNodeAstar.pos.y)
         {
           break; // Break if iterator is found that matches last node of A* path
         }
+        else if (it == pathNodes_spiral.end())
+        {
+          break; // Break if it is already at last node to prevent it becoming bigger than pathNodes_spiral
+        }
         ++it; // Iterate one further to find starting point of new spiral
       }
-      std::list<gridNode_t> pathNodes_spiral;
-      pathNodes_spiral.splice(pathNodes_spiral.begin(), pathNodes_copy, it, pathNodes_copy.end());
+      pathNodes_spiral.erase(pathNodes_spiral.begin(), it);
       if (pathNodes_spiral.size() > 1)
       {
         SpiralSTC::visualizeSpirals(pathNodes_spiral, "spiral" + std::to_string(goals.size() + 1), 0.2, 0.5, 0.0, 0.6, 0.0);
-      }
-      if (pathNodes_spiral.size() > 0)
-      {
-        pathNodes_spiral.clear();
       }
 
       goals = map_2_goals(visited, eNodeOpen); // Retrieve remaining goalpoints
@@ -305,7 +354,7 @@ namespace full_coverage_path_planner
       }
     }
 
-    visualizeGrid(visited, "visitedCubes", 0.3, 0.0, 0.0, 0.6);
+    visualizeGrid(visited, "visitedCubes", 0.25, 0.0, 0.0, 0.6);
 
     return fullPath;
   }
@@ -324,11 +373,11 @@ namespace full_coverage_path_planner
     }
 
     clock_t begin = clock();
-    Point_t startPoint;
-    double yawStart;
+    Point_t start_point;
+    double yaw_start;
 
     std::vector<std::vector<bool>> grid;
-    if (!parseGrid(costmap_, grid, (robot_radius_ * 2)/division_factor_, (tool_radius_ * 2)/division_factor_, start, startPoint, yawStart))
+    if (!parseGrid(costmap_, grid, (robot_radius_ * 2)/division_factor_, (tool_radius_ * 2)/division_factor_, start, start_point, yaw_start))
     {
       RCLCPP_ERROR(rclcpp::get_logger("FullCoveragePathPlanner"), "Could not parse retrieved grid");
       return false;
@@ -340,9 +389,39 @@ namespace full_coverage_path_planner
     visualizeGridlines();
     visualizeGrid(grid, "gridCubes", 0.6, 0.0, 0.0, 0.0);
 
+    // Find a location on the map so that the manoeuvre will not be out of bounds (not relevant)
+    int mid_x = coarse_grid_.getSizeInCellsX()/2;
+    int mid_y = coarse_grid_.getSizeInCellsY()/2;
+    int mid_x_plus_one = mid_x+1;
+    int mid_y_plus_one = mid_y+1;
+    int mid_y_minus_one = mid_y-1;
+    double yaw = 0.0;
+    // Compute the absolute swept path of the 3 basic manoeuvres
+    ManoeuvreFootprint(mid_x, mid_y, mid_x, mid_y_plus_one, yaw, left_turn_);
+    ManoeuvreFootprint(mid_x, mid_y, mid_x_plus_one, mid_y, yaw, forward_);
+    ManoeuvreFootprint(mid_x, mid_y, mid_x, mid_y_minus_one, yaw, right_turn_);
+    // Convert absolute cell locations to relative cell locations for each manoeuvre
+    // TODO(Aron): make the computation below neater
+    for (uint i = 0; i < left_turn_.size(); i++)
+    {
+      left_turn_[i] = {left_turn_[i].x - mid_x, left_turn_[i].y - mid_y};
+    }
+    for (uint i = 0; i < forward_.size(); i++)
+    {
+      forward_[i] = {forward_[i].x - mid_x, forward_[i].y - mid_y};
+    }
+    for (uint i = 0; i < right_turn_.size(); i++)
+    {
+      right_turn_[i] = {right_turn_[i].x - mid_x, right_turn_[i].y - mid_y};
+    }
+    for (auto const cell : left_turn_)
+    {
+      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Test cell: (x=%d,y=%d)", cell.x, cell.y);
+    }
+
     std::list<Point_t> goalPoints = spiral_stc(grid,
-                                               startPoint,
-                                               yawStart,
+                                               start_point,
+                                               yaw_start,
                                                spiral_cpp_metrics_.multiple_pass_counter,
                                                spiral_cpp_metrics_.visited_counter);
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Naive cpp completed!");
@@ -373,44 +452,86 @@ namespace full_coverage_path_planner
     return true;
   }
 
-  std::vector<nav2_costmap_2d::MapLocation> SpiralSTC::getFootprintCells(int &x_m, int &y_m, double &yaw)
+  bool SpiralSTC::FootprintCells(int &x_m, int &y_m, double &yaw, std::vector<nav2_costmap_2d::MapLocation> &footprint_cells)
   {
     double x_w, y_w;
     coarse_grid_.mapToWorld(x_m, y_m, x_w, y_w);
     std::vector<geometry_msgs::msg::Point> footprint;
     nav2_costmap_2d::transformFootprint(x_w, y_w, yaw, coarse_grid_ros_->getRobotFootprint(), footprint);
-    std::vector<nav2_costmap_2d::MapLocation> footprint_ML, footprint_cells;
+    std::vector<nav2_costmap_2d::MapLocation> footprint_ML;
     for (auto const point : footprint)
     {
-      uint map_x, map_y;
-      coarse_grid_.worldToMap(point.x, point.y, map_x, map_y);
-      nav2_costmap_2d::MapLocation mapLoc{map_x, map_y};
+      int map_x, map_y;
+      coarse_grid_.worldToMapNoBounds(point.x, point.y, map_x, map_y);
+      if (map_x < 0 || map_y < 0 || map_x >= (int)coarse_grid_.getSizeInCellsX()|| map_y >= (int)coarse_grid_.getSizeInCellsY())
+      {
+        return false;
+      }
+      nav2_costmap_2d::MapLocation mapLoc{(uint)map_x, (uint)map_y};
       footprint_ML.push_back(mapLoc);
     }
-    if (test_counter < 1)
-    {
-      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Footprint below ============");
-      for (auto const cell : footprint_ML)
-      {
-        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), ("Footprint corner: x=" + std::to_string(cell.x) + ", y=" + std::to_string(cell.y)).c_str());
-      }
-    }
     coarse_grid_.convexFillCells(footprint_ML, footprint_cells);
-    return footprint_cells;
+    return true;
   }
 
   // TODO(Aron): Turn this into multiple functions and call them in initialization procedure
   // also think of a way to save and call up the different to-be-checked grids per manoeuvre
-  std::vector<nav2_costmap_2d::MapLocation> SpiralSTC::getManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1)
+  bool SpiralSTC::ManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1, std::vector<nav2_costmap_2d::MapLocation> &man_grids)
   {
     // Determine the footprint of the manoeuvre starting pose
-    std::vector<nav2_costmap_2d::MapLocation> footprint1_cells = getFootprintCells(x1, y1, yaw1);
+    std::vector<nav2_costmap_2d::MapLocation> footprint1_cells;
+    if (!FootprintCells(x1, y1, yaw1, footprint1_cells))
+    {
+      return false;
+    }
 
-    // Determine the footprint of the manoeuvre ending pose
+    // Determine the orientation of the manoeuvre ending pose
     int dx = x2 - x1;
     int dy = y2 - y1;
     double yaw2 = std::atan2(dy, dx);
-    std::vector<nav2_costmap_2d::MapLocation> footprint2_cells = getFootprintCells(x2, y2, yaw2);
+
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoeuvre from (x=%d, y=%d, yaw=%f) to (x=%d, y=%d, yaw=%f)", x1, y1, yaw1, x2, y2, yaw2);
+
+    // Compute the footprints of all intermediate poses
+    uint N = 10; // Steps in between footprint 1 and footprint 2
+    double yaw_diff, yaw_inter;
+    std::vector<nav2_costmap_2d::MapLocation> cells, intermediate_cells;
+
+    // Manually compute the difference in special cases
+    if (yaw1 == -0.5*M_PI && yaw2 == M_PI)
+    {
+      yaw_diff = -0.5*M_PI;
+    }
+    else if (yaw1 == M_PI && yaw2 == -0.5*M_PI)
+    {
+      yaw_diff = 0.5*M_PI;
+    }
+    else
+    {
+      yaw_diff = yaw2 - yaw1;
+    }
+
+    for (uint i = 1; i < N; i++)
+    {
+      yaw_inter = yaw1 + (i*(yaw_diff))/(N+1); // Determine intermediate orientation between yaw1 and yaw2
+      if (yaw_inter > M_PI)
+      {
+        yaw_inter = yaw_inter - 2*M_PI; // Wrap angle back to (-Pi, Pi]
+      }
+      if (!FootprintCells(x1, y1, yaw_inter, cells))
+      {
+        return false;
+      }
+      intermediate_cells.insert(intermediate_cells.end(), cells.begin(), cells.end());
+    }
+
+    // Determine the footprint of the manoeuvre starting pose
+    std::vector<nav2_costmap_2d::MapLocation> footprint2_cells;
+    if (!FootprintCells(x2, y2, yaw2, footprint2_cells))
+    {
+      return false;
+    }
+    footprint2_cells.insert(footprint2_cells.end(), intermediate_cells.begin(), intermediate_cells.end());
 
     // Save the indexes of the covered cells for footprint 1
     std::vector<int> footprint1_cells_inds;
@@ -443,7 +564,6 @@ namespace full_coverage_path_planner
     }
 
     // Get rid of duplicates in the to-be-checked grids and convert back to MapLocations
-    std::vector<nav2_costmap_2d::MapLocation> man_grids;
     std::sort(man_grids_inds.begin(), man_grids_inds.end());
     man_grids_inds.erase(unique(man_grids_inds.begin(), man_grids_inds.end()), man_grids_inds.end());
     for (auto const ind : man_grids_inds)
@@ -454,7 +574,7 @@ namespace full_coverage_path_planner
       man_grids.push_back(maploc);
     }
 
-    return man_grids;
+    return true;
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////
@@ -536,26 +656,6 @@ namespace full_coverage_path_planner
       spiral.points.push_back(p);
     }
     vis_pub_spirals_->publish(spiral);
-  }
-
-  visualization_msgs::msg::Marker SpiralSTC::sphereMarker(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b)
-  {
-    visualization_msgs::msg::Marker sphereList;
-    sphereList.header.frame_id = frame_id;
-    sphereList.header.stamp = rclcpp::Time();
-    sphereList.ns = name_space;
-    sphereList.action = visualization_msgs::msg::Marker::ADD;
-    sphereList.pose.orientation.w = 1.0;
-    sphereList.id = id;
-    sphereList.type = visualization_msgs::msg::Marker::SPHERE_LIST;
-    sphereList.scale.x = size;
-    sphereList.scale.y = size;
-    sphereList.scale.z = size;
-    sphereList.color.a = a;
-    sphereList.color.r = r;
-    sphereList.color.g = g;
-    sphereList.color.b = b;
-    return sphereList;
   }
 
   visualization_msgs::msg::Marker SpiralSTC::cubeMarker(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b)
