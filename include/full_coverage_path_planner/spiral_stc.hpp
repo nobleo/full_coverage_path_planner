@@ -35,7 +35,7 @@ namespace full_coverage_path_planner
   public:
 
     // New variable to divide to pick tile size as tool width divided by preferably an uneven number
-    int division_factor_ = 5;
+    int division_factor_ = 3;
     int max_overlap_ = 4;
 
     // Temporary for debugging purposes

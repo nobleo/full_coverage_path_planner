@@ -160,26 +160,36 @@ namespace full_coverage_path_planner
         // Compute grids to be covered by the manoeuvre and check if they are in map bounds
         man_grids.clear();
 
-        // if (!ManoeuvreFootprint(x1, y1, x2, y2, yaw, man_grids))
-        // {
-        //   RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoevre out of bounds, looking in other directions...");
-        //   continue;
-        // }
-
-        // nav2_costmap_2d::MapLocation * left_turn = &left_turn_;
-        // nav2_costmap_2d::MapLocation * forward = &forward_;
-        // nav2_costmap_2d::MapLocation * right_turn = &right_turn_;
-
         RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoeuvre from (x=%d, y=%d, yaw=%f) to (x=%d, y=%d, yaw=?)", x1, y1, yaw, x2, y2);
 
+        bool man_is_free = true; // This condition might change in the loop below
+
+        // Cast double outputs of cosine and sine to integers
+        int cos_yaw = cos(yaw);
+        int sin_yaw = sin(yaw);
+        int x_max = coarse_grid_.getSizeInCellsX() - 1;
+        int y_max = coarse_grid_.getSizeInCellsY() - 1;
+
         // Apply rotation to the relative manoeuvre cells to convert from robot frame to world frame
+        // TODO(Aron): Make a function out of the rotation, including out of bounds check
         if (i == 0) // Relative left turn manoeuvre
         {
           man_grids.resize(left_turn_.size());
           for (uint i = 0; i < left_turn_.size(); i++)
           {
-            man_grids[i].x = x1 + static_cast<int>(cos(yaw))*left_turn_[i].x - static_cast<int>(sin(yaw))*left_turn_[i].y;
-            man_grids[i].y = y1 + static_cast<int>(sin(yaw))*left_turn_[i].x + static_cast<int>(cos(yaw))*left_turn_[i].y;
+            int x = x1 + cos_yaw*left_turn_[i].x - sin_yaw*left_turn_[i].y;
+            int y = y1 + sin_yaw*left_turn_[i].x + cos_yaw*left_turn_[i].y;
+            if (x < 0 || y < 0 || x > x_max || y > y_max)
+            {
+              RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoevre out of bounds, looking in other directions...");
+              man_is_free = false;
+              break;
+            }
+            else
+            {
+              man_grids[i].x = x;
+              man_grids[i].y = y;
+            }
           }
         }
         else if (i == 1) // Relative forward manoeuvre
@@ -187,8 +197,19 @@ namespace full_coverage_path_planner
           man_grids.resize(forward_.size());
           for (uint i = 0; i < forward_.size(); i++)
           {
-            man_grids[i].x = x1 + static_cast<int>(cos(yaw))*forward_[i].x - static_cast<int>(sin(yaw))*forward_[i].y;
-            man_grids[i].y = y1 + static_cast<int>(sin(yaw))*forward_[i].x + static_cast<int>(cos(yaw))*forward_[i].y;
+            int x = x1 + cos_yaw*forward_[i].x - sin_yaw*forward_[i].y;
+            int y = y1 + sin_yaw*forward_[i].x + cos_yaw*forward_[i].y;
+            if (x < 0 || y < 0 || x > x_max || y > y_max)
+            {
+              RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoevre out of bounds, looking in other directions...");
+              man_is_free = false;
+              break;
+            }
+            else
+            {
+              man_grids[i].x = x;
+              man_grids[i].y = y;
+            }
           }
         }
         else if (i == 2) // Relative right turn manoeuvre
@@ -196,14 +217,22 @@ namespace full_coverage_path_planner
           man_grids.resize(right_turn_.size());
           for (uint i = 0; i < right_turn_.size(); i++)
           {
-            man_grids[i].x = x1 + static_cast<int>(cos(yaw))*right_turn_[i].x - static_cast<int>(sin(yaw))*right_turn_[i].y;
-            man_grids[i].y = y1 + static_cast<int>(sin(yaw))*right_turn_[i].x + static_cast<int>(cos(yaw))*right_turn_[i].y;
+            int x = x1 + cos_yaw*right_turn_[i].x - sin_yaw*right_turn_[i].y;
+            int y = y1 + sin_yaw*right_turn_[i].x + cos_yaw*right_turn_[i].y;
+            if (x < 0 || y < 0 || x > x_max || y > y_max)
+            {
+              RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoevre out of bounds, looking in other directions...");
+              man_is_free = false;
+              break;
+            }
+            else
+            {
+              man_grids[i].x = x;
+              man_grids[i].y = y;
+            }
           }
         }
 
-        // TODO(Aron) Check if man_grids is in bound or not here
-
-        bool man_is_free = true; // This condition might change in the loop below
         int overlap = 0; // Keep track of the overlap with already visited grids
         for (const auto man_grid : man_grids)
         {
@@ -311,7 +340,7 @@ namespace full_coverage_path_planner
       }
 
       spiral_counter_++; // Count number of spirals planned
-      if (spiral_counter_ > 1)
+      if (spiral_counter_ > 2)
       {
       RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "@@@@@@ BREAK INSERTED TO ONLY PLAN CERTAIN AMOUNT OF SPIRALS @@@@@@"); // For debugging purposes
       break;
@@ -400,6 +429,7 @@ namespace full_coverage_path_planner
     ManoeuvreFootprint(mid_x, mid_y, mid_x, mid_y_plus_one, yaw, left_turn_);
     ManoeuvreFootprint(mid_x, mid_y, mid_x_plus_one, mid_y, yaw, forward_);
     ManoeuvreFootprint(mid_x, mid_y, mid_x, mid_y_minus_one, yaw, right_turn_);
+
     // Convert absolute cell locations to relative cell locations for each manoeuvre
     // TODO(Aron): make the computation below neater
     for (uint i = 0; i < left_turn_.size(); i++)
