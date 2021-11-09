@@ -34,17 +34,18 @@ namespace full_coverage_path_planner
   {
   public:
 
-    // New variable to divide to pick tile size as tool width divided by preferably an uneven number
-    int division_factor_ = 3;
-    int max_overlap_ = 4;
+    int division_factor = 3; // Grid size is chosen as tool width divided by  this factor (preferably an uneven number)
+    int max_overlap;
+    int max_overlap_forward = 0; // Maximum allowable overlapping grids between a forward menoeuvre and already visited grids
+    int max_overlap_turn = 6; // Maximum allowable overlapping grids between a turning menoeuvre and already visited grids
+    int N_footprints = 20; // Orientation steps in between footprint 1 and footprint 2 to check for a manoeuvre
 
-    // Temporary for debugging purposes
-    int spiral_counter_ = 0;
+    int spiral_counter = 0; // Temporary for debugging purposes
 
     // Relative manoeuvre footprints (in robot frame)
-    std::vector<nav2_costmap_2d::MapLocation> left_turn_;
-    std::vector<nav2_costmap_2d::MapLocation> forward_;
-    std::vector<nav2_costmap_2d::MapLocation> right_turn_;
+    std::vector<nav2_costmap_2d::MapLocation> left_turn;
+    std::vector<nav2_costmap_2d::MapLocation> forward;
+    std::vector<nav2_costmap_2d::MapLocation> right_turn;
 
     /**
      * @brief constructor
@@ -146,8 +147,26 @@ namespace full_coverage_path_planner
     std::list<Point_t> spiral_stc(std::vector<std::vector<bool>> const &grid, Point_t &init, double &yaw_start,
                                   int &multiple_pass_counter, int &visited_counter);
 
-    bool FootprintCells(int &x_m, int &y_m, double &yaw, std::vector<nav2_costmap_2d::MapLocation> &footprint_cells);
+    /**
+     * Compute the cells in a grid that lie below a convex footprint
+     * @param x_m the x coordinate of the map location around which the footprint is defined
+     * @param y_m the y coordinate of the map location around which the footprint is defined
+     * @param yaw the orientation of footprint
+     * @param footprint_cells the output vector of map locations what are covered by the footprint
+     * @return boolean that indicates if the entire footprint lies inside the map boundaries
+     */
+    bool computeFootprintCells(int &x_m, int &y_m, double &yaw, std::string part, std::vector<nav2_costmap_2d::MapLocation> &footprint_cells);
 
-    bool ManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
+    /**
+     * Compute the cells in a grid make up the swept path of a manoeuvre build from footprints
+     * @param x1 the x coordinate of the map location around which the initial footprint is defined
+     * @param y1 the y coordinate of the map location around which the initial footprint is defined
+     * @param x1 the x coordinate of the map location around which the final footprint is defined
+     * @param y1 the y coordinate of the map location around which the final footprint is defined
+     * @param yaw1 the starting orientation of the manoeuvre
+     * @param man_grids the output vector of map locations that are covered by the manoeuvre
+     * @return boolean that indicates if the entire manoeuvre lies inside the map boundaries
+     */
+    bool computeManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
   };
 }  // namespace full_coverage_path_planner
