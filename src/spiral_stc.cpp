@@ -162,7 +162,7 @@ namespace full_coverage_path_planner
         int x_max = coarse_grid.getSizeInCellsX() - 1;
         int y_max = coarse_grid.getSizeInCellsY() - 1;
 
-        // Apply rotation to the relative manoeuvre cells to convert from robot frame to world frame
+        // Apply a rotation to the relative manoeuvre cells to convert from robot frame to world frame
         if (i == 0) // Relative left turn manoeuvre
         {
           man_grids.resize(left_turn_rel.size());
@@ -237,7 +237,7 @@ namespace full_coverage_path_planner
         }
         RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> with size=%lu of which %d are overlapping", man_grids.size(), overlap);
 
-        // Check if at the final orientation, it can still go either right or left
+        // Check if it can still go either right or left at the final orientation
         std::vector<Point_t> future_left, future_right;
         future_left.resize(left_turn_rel.size());
         for (uint i = 0; i < left_turn_rel.size(); i++)
@@ -267,7 +267,7 @@ namespace full_coverage_path_planner
         RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> causing collision: %d, future left rejected: %d, future right rejected: %d", !man_is_free, future_left_rejected, future_right_rejected);
         if (future_left_rejected && future_right_rejected)
         {
-          man_is_free = false;
+          man_is_free = false; // Do not make the manoeuvre if it is not possible to turn right or left at the next step
         }
 
         // When all conditions are met, add the point to pathNodes and mark the covered cells as visited
@@ -338,7 +338,7 @@ namespace full_coverage_path_planner
     {
 
       spiral_counter++; // Count number of spirals planned
-      if (spiral_counter == 4)
+      if (spiral_counter == 1)
       {
       RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "@@@@@@@@@ BREAK INSERTED TO ONLY PLAN CERTAIN AMOUNT OF SPIRALS @@@@@@@@@"); // For debugging purposes
       break;

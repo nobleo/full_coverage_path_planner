@@ -158,7 +158,7 @@ namespace full_coverage_path_planner
      * @param y_m the y coordinate of the map location around which the footprint is defined
      * @param yaw the orientation of footprint
      * @param footprint_cells the output vector of map locations what are covered by the footprint
-     * @return boolean that indicates if the entire footprint lies inside the map boundaries
+     * @return a boolean that indicates if the entire footprint lies inside the map boundaries
      */
     bool computeFootprintCells(int &x_m, int &y_m, double &yaw, std::string part, std::vector<nav2_costmap_2d::MapLocation> &footprint_cells);
 
@@ -170,12 +170,29 @@ namespace full_coverage_path_planner
      * @param y1 the y coordinate of the map location around which the final footprint is defined
      * @param yaw1 the starting orientation of the manoeuvre
      * @param man_grids the output vector of map locations that are covered by the manoeuvre
-     * @return boolean that indicates if the entire manoeuvre lies inside the map boundaries
+     * @return a boolean that indicates if the entire manoeuvre lies inside the map boundaries
      */
     bool computeManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
 
+    /**
+     * Rotate a point on the grid around another point on the grid via conversion to world coordinates
+     * @param poi_x the x coordinate of the point of interest that will rotate
+     * @param poi_y the y coordinate of the point of interest that will rotate
+     * @param icr_x the x coordinate of the instant center of rotation
+     * @param icr_y the y coordinate of the instant center of rotation
+     * @param yaw the angle with which the poi will rotate around the icr
+     * @return the rotated point containing the x and y indices of the grid cell
+     */
     Point_t rotatePoint(int poi_x, int poi_y, int &icr_x, int &icr_y, double &yaw);
 
+    /**
+     * Check if a cell lies within all of the map boundaries
+     * @param x the x index of the cell of interest
+     * @param y the y index of the cell of interest
+     * @param x_max the maximum x index that lies inside the grid map
+     * @param y_max the maximum y index that lies inside the grid map
+     * @return a boolean that is true when the cell of interest lies inside the map boundaries
+     */
     bool checkMapBounds(int x, int y, int &x_max, int &y_max);
   };
 }  // namespace full_coverage_path_planner
