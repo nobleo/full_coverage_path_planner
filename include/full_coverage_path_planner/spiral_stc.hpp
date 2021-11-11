@@ -42,10 +42,15 @@ namespace full_coverage_path_planner
 
     int spiral_counter = 0; // Temporary for debugging purposes
 
-    // Relative manoeuvre footprints (in robot frame)
+    // Absolute manoeuvre footprints (in robot frame)
     std::vector<nav2_costmap_2d::MapLocation> left_turn;
     std::vector<nav2_costmap_2d::MapLocation> forward;
     std::vector<nav2_costmap_2d::MapLocation> right_turn;
+
+    // Relative manoeuvre footprints (in robot frame)
+    std::vector<Point_t> left_turn_rel;
+    std::vector<Point_t> forward_rel;
+    std::vector<Point_t> right_turn_rel;
 
     /**
      * @brief constructor
@@ -104,8 +109,8 @@ namespace full_coverage_path_planner
     void visualizeGridlines();
     void visualizeSpirals(std::list<gridNode_t> &spiralNodes, std::string name_space, float w, float a, float r, float g, float b);
 
-    nav2_costmap_2d::Costmap2D coarse_grid_;
-    nav2_costmap_2d::Costmap2DROS *coarse_grid_ros_;
+    nav2_costmap_2d::Costmap2D coarse_grid;
+    nav2_costmap_2d::Costmap2DROS *coarse_grid_ros;
 
   protected:
     /**
@@ -168,5 +173,9 @@ namespace full_coverage_path_planner
      * @return boolean that indicates if the entire manoeuvre lies inside the map boundaries
      */
     bool computeManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
+
+    Point_t rotatePoint(int poi_x, int poi_y, int &icr_x, int &icr_y, double &yaw);
+
+    bool checkMapBounds(int x, int y, int &x_max, int &y_max);
   };
 }  // namespace full_coverage_path_planner
