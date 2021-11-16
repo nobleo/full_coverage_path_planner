@@ -37,10 +37,12 @@ namespace full_coverage_path_planner
     int division_factor = 3; // Grid size is chosen as tool width divided by  this factor (preferably an uneven number)
     int max_overlap;
     int max_overlap_forward = 0; // Maximum allowable overlapping grids between a forward menoeuvre and already visited grids
-    int max_overlap_turn = 6; // Maximum allowable overlapping grids between a turning menoeuvre and already visited grids
-    int N_footprints = 20; // Orientation steps in between footprint 1 and footprint 2 to check for a manoeuvre
+    int max_overlap_turn = 4; // Maximum allowable overlapping grids between a turning menoeuvre and already visited grids
+    int N_footprints = 100; // Orientation steps in between footprint 1 and footprint 2 to check for a manoeuvre
 
-    int spiral_counter = 0; // Temporary for debugging purposes
+    // Temporary for debugging purposes
+    int spiral_counter = 0; // Limit the amount of spirals planned
+    std::vector<std::vector<bool>> visited_copy; // Only mark the spots covered by spirals (not A*)
 
     // Absolute manoeuvre footprints (in robot frame)
     std::vector<nav2_costmap_2d::MapLocation> left_turn;
@@ -172,7 +174,7 @@ namespace full_coverage_path_planner
      * @param man_grids the output vector of map locations that are covered by the manoeuvre
      * @return a boolean that indicates if the entire manoeuvre lies inside the map boundaries
      */
-    bool computeManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
+    bool computeManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
 
     /**
      * Rotate a point on the grid around another point on the grid via conversion to world coordinates

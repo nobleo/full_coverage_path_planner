@@ -125,9 +125,10 @@ namespace full_coverage_path_planner
     {
       RCLCPP_ERROR(rclcpp::get_logger("FullCoveragePathPlanner"), "Starting footprint seems to be out of bounds!");
     }
-    for (auto const cell : init_cells)
+    for (const auto cell : init_cells)
     {
       visited[cell.y][cell.x] = eNodeVisited;
+      visited_copy[cell.y][cell.x] = eNodeVisited;
     }
 
     std::vector<nav2_costmap_2d::MapLocation> man_grids;
@@ -221,8 +222,7 @@ namespace full_coverage_path_planner
           max_overlap = max_overlap_turn;
         }
 
-        // Check the manoeuvre cells for collisions and overlap with already visisted grids
-        int overlap = 0;
+        // Check the manoeuvre cells of the vehicle for collisions
         for (const auto man_grid : man_grids)
         {
           if (grid[man_grid.y][man_grid.x] == eNodeVisited)
@@ -230,12 +230,21 @@ namespace full_coverage_path_planner
             man_is_free = false;
             break;
           }
-          else if (grid[man_grid.y][man_grid.x] == eNodeOpen && visited[man_grid.y][man_grid.x] == eNodeVisited)
+        }
+
+        // Check the manoeuvre cells of the tool for overlap
+        int overlap = 0;
+        std::vector<nav2_costmap_2d::MapLocation> visited_cells;
+        visited_cells.clear();
+        computeManoeuvreFootprint(x1, y1, x2, y2, yaw1, "tool", visited_cells); // TODO(Aron) precompute and reuse this as well if it seems to work
+        for (const auto visited_cell : visited_cells)
+        {
+          if (grid[visited_cell.y][visited_cell.x] == eNodeOpen && visited[visited_cell.y][visited_cell.x] == eNodeVisited)
           {
             overlap++;
           }
         }
-        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> with size=%lu of which %d are overlapping", man_grids.size(), overlap);
+        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> with size=%lu (& %lu) of which %d are overlapping", man_grids.size(), visited_cells.size(), overlap);
 
         // Check if it can still go either right or left at the final orientation
         std::vector<Point_t> future_left, future_right;
@@ -278,11 +287,10 @@ namespace full_coverage_path_planner
           prev = pathNodes.back();
           pathNodes.push_back(new_node);
           it = --(pathNodes.end());
-          std::vector<nav2_costmap_2d::MapLocation> visited_cells;
-          computeFootprintCells(x2, y2, yaw2, "tool", visited_cells);
           for (const auto cell : visited_cells)
           {
             visited[cell.y][cell.x] = eNodeVisited;
+            visited_copy[cell.y][cell.x] = eNodeVisited;
           }
           done = false;
           break;
@@ -307,6 +315,7 @@ namespace full_coverage_path_planner
 
     std::vector<std::vector<bool>> visited;
     visited = grid; // Copy grid matrix
+    visited_copy.resize(visited[0].size(), std::vector<bool>(visited.size())); // For debugging purposes, to only see the grids that are marked as visited by the spirals
     int init_x = init.x;
     int init_y = init.y;
     Point_t new_point = {init_x, init_y};
@@ -338,10 +347,10 @@ namespace full_coverage_path_planner
     {
 
       spiral_counter++; // Count number of spirals planned
-      if (spiral_counter == 1)
+      if (spiral_counter == 2)
       {
-      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "@@@@@@@@@ BREAK INSERTED TO ONLY PLAN CERTAIN AMOUNT OF SPIRALS @@@@@@@@@"); // For debugging purposes
-      break;
+        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "@@@@@@@@@ BREAK INSERTED TO ONLY PLAN CERTAIN AMOUNT OF SPIRALS @@@@@@@@@"); // For debugging purposes
+        break;
       }
 
       // Remove all elements from pathNodes list except last element
@@ -377,7 +386,7 @@ namespace full_coverage_path_planner
         std::vector<nav2_costmap_2d::MapLocation> temp;
         accept_a_star = computeFootprintCells(x_n, y_n, yaw, "vehicle", temp);
         int visit_count = 0;
-        for (auto const cell : temp)
+        for (const auto cell : temp)
         {
           if (grid[cell.y][cell.x] == eNodeVisited)
           {
@@ -391,7 +400,7 @@ namespace full_coverage_path_planner
         }
         if (!accept_a_star || visit_count > max_overlap)
         {
-          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "~~~ A* is not accepted");
+          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "~~~ A* is not accepted, grid considered visited");
           visited[y_n][x_n] = eNodeVisited;
           pathNodes.erase(++(pathNodes.begin()), pathNodes.end());
           accept_a_star = false;
@@ -455,7 +464,8 @@ namespace full_coverage_path_planner
       }
     }
 
-    visualizeGrid(visited, "visitedCubes", 0.25, 0.0, 0.0, 0.6);
+    visualizeGrid(visited, "visitedCubes", 0.3, 0.0, 0.0, 0.8);
+    visualizeGrid(visited_copy, "visitedCubes_copy", 0.3, 0.0, 0.8, 0.0);
 
     return fullPath;
   }
@@ -499,9 +509,9 @@ namespace full_coverage_path_planner
     double yaw = 0.0;
     // Compute the absolute swept path of the 3 basic manoeuvres
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Computing standard manoeuvres");
-    computeManoeuvreFootprint(mid_x, mid_y, mid_x, mid_y_plus_one, yaw, left_turn);
-    computeManoeuvreFootprint(mid_x, mid_y, mid_x_plus_one, mid_y, yaw, forward);
-    computeManoeuvreFootprint(mid_x, mid_y, mid_x, mid_y_minus_one, yaw, right_turn);
+    computeManoeuvreFootprint(mid_x, mid_y, mid_x, mid_y_plus_one, yaw, "vehicle", left_turn);
+    computeManoeuvreFootprint(mid_x, mid_y, mid_x_plus_one, mid_y, yaw, "vehicle", forward);
+    computeManoeuvreFootprint(mid_x, mid_y, mid_x, mid_y_minus_one, yaw, "vehicle", right_turn);
 
     // Convert absolute cell locations to relative cell locations for each manoeuvre
     left_turn_rel.resize(left_turn.size());
@@ -544,13 +554,11 @@ namespace full_coverage_path_planner
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Total accessible cells: %d", spiral_cpp_metrics_.accessible_counter);
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Total accessible area: %f", spiral_cpp_metrics_.total_area_covered);
 
-    // TODO(CesarLopez): Check if global path should be calculated repetitively or just kept
-    // (also controlled by planner_frequency parameter in move_base namespace)
+    // TODO(CesarLopez): Check if global path should be calculated repetitively or just kept (also controlled by planner_frequency parameter in move_base namespace)
 
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Publishing plan!");
     publishPlan(plan);
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Plan published!");
-    RCLCPP_DEBUG(rclcpp::get_logger("FullCoveragePathPlanner"), "Plan published");
 
     clock_t end = clock();
     double elapsed_secs = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
@@ -576,17 +584,17 @@ namespace full_coverage_path_planner
       // Manually define the tool footprint
       std::vector<geometry_msgs::msg::Point> tool_footprint;
       geometry_msgs::msg::Point p;
-      p.x = 0.53;
-      p.y = 0.53;
+      p.x = 0.2;
+      p.y = 0.4;
       tool_footprint.push_back(p);
-      p.x = 0.53;
-      p.y = -0.53;
+      p.x = 0.545;
+      p.y = 0.4;
       tool_footprint.push_back(p);
-      p.x = -0.53;
-      p.y = -0.53;
-      tool_footprint.push_back(p);
-      p.x = -0.53;
-      p.y = 0.53;
+      p.x = 0.545;
+      p.y = -0.4;
+      tool_footprint.push_back(p); //TODO(Aron) has to be declared somewhere else!
+      p.x = 0.2;
+      p.y = -0.4;
       tool_footprint.push_back(p);
       nav2_costmap_2d::transformFootprint(x_w, y_w, yaw, tool_footprint, footprint);
     }
@@ -595,7 +603,7 @@ namespace full_coverage_path_planner
     int x_max = coarse_grid.getSizeInCellsX() - 1;
     int y_max = coarse_grid.getSizeInCellsY() - 1;
     std::vector<nav2_costmap_2d::MapLocation> footprint_ML;
-    for (auto const point : footprint)
+    for (const auto point : footprint)
     {
       int map_x, map_y;
       coarse_grid.worldToMapNoBounds(point.x, point.y, map_x, map_y); // Use worldToMapNoBounds() variant because of bugs in the one that enforces bounds
@@ -607,27 +615,50 @@ namespace full_coverage_path_planner
       footprint_ML.push_back(mapLoc);
     }
 
+    // Filter out double corner points that happen due to the grid resolution to prevent problems with convexFillCells() later
+    std::vector<int> footprint_inds;
+    for (const auto loc : footprint_ML)
+    {
+      int index = coarse_grid.getIndex(loc.x, loc.y);
+      footprint_inds.push_back(index);
+    }
+    std::sort(footprint_inds.begin(), footprint_inds.end());
+    footprint_inds.erase(std::unique(footprint_inds.begin(), footprint_inds.end()), footprint_inds.end());
+    footprint_ML.clear();
+    for (const auto ind : footprint_inds)
+    {
+      nav2_costmap_2d::MapLocation map_loc;
+      coarse_grid.indexToCells(ind, map_loc.x, map_loc.y);
+      footprint_ML.push_back(map_loc);
+    }
+
     // Find the cells below the convex footprint and save them
+    if (footprint_ML.size() < 3)
+    {
+      RCLCPP_ERROR(rclcpp::get_logger("FullCoveragePathPlanner"), "Footprint does not consists of 3 or more points!");
+    }
     coarse_grid.convexFillCells(footprint_ML, footprint_cells);
     return true;
   }
 
-  bool SpiralSTC::computeManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1, std::vector<nav2_costmap_2d::MapLocation> &man_grids)
+  bool SpiralSTC::computeManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids)
   {
     // Determine the footprint of the manoeuvre starting pose
     std::vector<nav2_costmap_2d::MapLocation> footprint1_cells;
-    if (!computeFootprintCells(x1, y1, yaw1, "vehicle", footprint1_cells))
+    if (part == "vehicle" && !computeFootprintCells(x1, y1, yaw1, "vehicle", footprint1_cells))
+    {
+      return false;
+    }
+    else if (part == "tool" && !computeFootprintCells(x1, y1, yaw1, "tool", footprint1_cells))
     {
       return false;
     }
 
     // Determine the orientation of the manoeuvre ending pose
     double yaw2 = std::atan2(y2 - y1, x2 - x1);
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  Manoeuvre from (x=%d, y=%d, yaw=%f) to (x=%d, y=%d, yaw=%f)", x1, y1, yaw1, x2, y2, yaw2);
 
     // Compute the footprints of all intermediate poses
     double yaw_diff, yaw_inter;
-    std::vector<nav2_costmap_2d::MapLocation> cells, intermediate_cells;
 
     // Manually compute the difference in special cases
     if (yaw1 == -0.5*M_PI && yaw2 == M_PI)
@@ -644,23 +675,33 @@ namespace full_coverage_path_planner
     }
 
     // Determine the footprint of the intermediate poses of the manoeuvre
+    std::vector<nav2_costmap_2d::MapLocation> intermediate_cells;
     for (int i = 1; i < N_footprints; i++)
     {
+      std::vector<nav2_costmap_2d::MapLocation> cells;
       yaw_inter = yaw1 + (i*(yaw_diff))/(N_footprints+1);
       if (yaw_inter > M_PI)
       {
         yaw_inter = yaw_inter - 2*M_PI; // Wrap angle back to (-PI, PI]
       }
-      if (!computeFootprintCells(x1, y1, yaw_inter, "vehicle", cells))
+      if (part == "vehicle" && !computeFootprintCells(x1, y1, yaw_inter, "vehicle", cells))
       {
         return false;
+      }
+      else if (part == "tool" && !computeFootprintCells(x1, y1, yaw_inter, "tool", cells))
+      {
+          return false;
       }
       intermediate_cells.insert(intermediate_cells.end(), cells.begin(), cells.end());
     }
 
-    // Determine the footprint of the manoeuvre starting pose
+    // Determine the footprint of the manoeuvre ending pose
     std::vector<nav2_costmap_2d::MapLocation> footprint2_cells;
-    if (!computeFootprintCells(x2, y2, yaw2, "vehicle", footprint2_cells))
+    if (part == "vehicle" && !computeFootprintCells(x2, y2, yaw2, "vehicle", footprint2_cells))
+    {
+      return false;
+    }
+    else if (part == "tool" && !computeFootprintCells(x2, y2, yaw2, "tool", footprint2_cells))
     {
       return false;
     }
@@ -668,7 +709,7 @@ namespace full_coverage_path_planner
 
     // Save the indexes of the covered cells for footprint 1
     std::vector<int> footprint1_cells_inds;
-    for (auto const cell1 : footprint1_cells)
+    for (const auto cell1 : footprint1_cells)
     {
       int index1 = coarse_grid.getIndex(cell1.x, cell1.y);
       footprint1_cells_inds.push_back(index1);
@@ -676,12 +717,12 @@ namespace full_coverage_path_planner
 
     // Find the indexes of the covered cells for footprint 2
     std::vector<int> man_grids_inds;
-    for (auto const cell2 : footprint2_cells)
+    for (const auto cell2 : footprint2_cells)
     {
       int index2 = coarse_grid.getIndex(cell2.x, cell2.y);
       bool allow = true;
       // Check if an index of footprint 2 matches with any of the indexes of footprint 1
-      for (auto const index1 : footprint1_cells_inds)
+      for (const auto index1 : footprint1_cells_inds)
       {
         if (index2 == index1)
         {
@@ -699,12 +740,11 @@ namespace full_coverage_path_planner
     // Get rid of duplicates in the to-be-checked grids and convert back to MapLocations
     std::sort(man_grids_inds.begin(), man_grids_inds.end());
     man_grids_inds.erase(unique(man_grids_inds.begin(), man_grids_inds.end()), man_grids_inds.end());
-    for (auto const ind : man_grids_inds)
+    for (const auto ind : man_grids_inds)
     {
-      uint mapgrid_x, mapgrid_y;
-      coarse_grid.indexToCells(ind, mapgrid_x, mapgrid_y);
-      nav2_costmap_2d::MapLocation maploc{mapgrid_x, mapgrid_y};
-      man_grids.push_back(maploc);
+      nav2_costmap_2d::MapLocation map_loc;
+      coarse_grid.indexToCells(ind, map_loc.x, map_loc.y);
+      man_grids.push_back(map_loc);
     }
 
     return true;
@@ -731,9 +771,9 @@ namespace full_coverage_path_planner
     return true;
   }
 
-  /////////////////////////////////////////////////////////////////////////////////////////
-  ///////////////////////////// Visualization Methods /////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////////////////
+  /* @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Visualization Methods @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ */
 
   void SpiralSTC::visualizeGridlines()
   {
