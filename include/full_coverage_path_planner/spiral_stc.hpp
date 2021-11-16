@@ -33,27 +33,6 @@ namespace full_coverage_path_planner
   class SpiralSTC : public nav2_core::GlobalPlanner , private full_coverage_path_planner::FullCoveragePathPlanner
   {
   public:
-
-    int division_factor = 3; // Grid size is chosen as tool width divided by  this factor (preferably an uneven number)
-    int max_overlap;
-    int max_overlap_forward = 0; // Maximum allowable overlapping grids between a forward menoeuvre and already visited grids
-    int max_overlap_turn = 4; // Maximum allowable overlapping grids between a turning menoeuvre and already visited grids
-    int N_footprints = 100; // Orientation steps in between footprint 1 and footprint 2 to check for a manoeuvre
-
-    // Temporary for debugging purposes
-    int spiral_counter = 0; // Limit the amount of spirals planned
-    std::vector<std::vector<bool>> visited_copy; // Only mark the spots covered by spirals (not A*)
-
-    // Absolute manoeuvre footprints (in robot frame)
-    std::vector<nav2_costmap_2d::MapLocation> left_turn;
-    std::vector<nav2_costmap_2d::MapLocation> forward;
-    std::vector<nav2_costmap_2d::MapLocation> right_turn;
-
-    // Relative manoeuvre footprints (in robot frame)
-    std::vector<Point_t> left_turn_rel;
-    std::vector<Point_t> forward_rel;
-    std::vector<Point_t> right_turn_rel;
-
     /**
      * @brief constructor
      */
@@ -101,20 +80,50 @@ namespace full_coverage_path_planner
         const geometry_msgs::msg::PoseStamped &start,
         const geometry_msgs::msg::PoseStamped &goal) override;
 
-    std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> vis_pub_grid_;
-    std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> vis_pub_spirals_;
 
     visualization_msgs::msg::Marker cubeMarker(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b);
+
     visualization_msgs::msg::Marker lineStrip(std::string frame_id, std::string name_space, int id, float size, float a, float r, float g, float b);
 
     void visualizeGrid(std::vector<std::vector<bool>> const &grid, std::string name_space, float a, float r, float g, float b);
+
     void visualizeGridlines();
+
     void visualizeSpirals(std::list<gridNode_t> &spiralNodes, std::string name_space, float w, float a, float r, float g, float b);
 
+  protected:
+
+    // TODO(Aron): Make these node parameters (update README accordingly)
+    // Planner parameters
+    double tool_width = 0.55; // The width of the vehicle which determines the grid size for the planner
+    int division_factor = 3; // Grid size is chosen as tool width divided by this factor (preferably an uneven number)
+    int max_overlap;
+    int max_overlap_forward = 0; // Maximum allowable overlapping grids between a forward menoeuvre and already visited grids
+    int max_overlap_turn = 4; // Maximum allowable overlapping grids between a turning menoeuvre and already visited grids
+    int N_footprints = 100; // Orientation steps in between footprint 1 and footprint 2 to check for a manoeuvre
+
+    // Temporary for debugging purposes
+    int spiral_counter = 0; // Limit the amount of spirals planned
+    std::vector<std::vector<bool>> visited_copy; // Only mark the spots covered by spirals (not A*)
+
+    // Absolute manoeuvre footprints (in the vehicle's frame)
+    std::vector<nav2_costmap_2d::MapLocation> left_turn;
+    std::vector<nav2_costmap_2d::MapLocation> forward;
+    std::vector<nav2_costmap_2d::MapLocation> right_turn;
+
+    // Relative manoeuvre footprints (in the vehicle's frame)
+    std::vector<Point_t> left_turn_rel;
+    std::vector<Point_t> forward_rel;
+    std::vector<Point_t> right_turn_rel;
+
+    // Local costmap objects for the planner to store the grid and manipulate footprints
     nav2_costmap_2d::Costmap2D coarse_grid;
     nav2_costmap_2d::Costmap2DROS *coarse_grid_ros;
 
-  protected:
+    // Publishers for the planner output
+    std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> grid_pub;
+    std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> spirals_pub;
+
     /**
      * @brief Given a goal pose in the world, compute a plan
      * @param start The start pose
