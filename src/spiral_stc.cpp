@@ -46,17 +46,28 @@ namespace full_coverage_path_planner
       grid_pub = node_->create_publisher<visualization_msgs::msg::Marker>("grid", 0);
       spirals_pub = node_->create_publisher<visualization_msgs::msg::Marker>("spirals", 0);
 
-      // TODO(Aron): These parameters are not used anymore, change parseGrid() function?
-      // Define  robot radius (radius) parameter
-      double robot_radius_default = 0.5;
-      declare_parameter_if_not_declared(node_, name_ + ".robot_radius", rclcpp::ParameterValue(robot_radius_default));
-      node_->get_parameter(name_ + ".robot_radius", robot_radius_);
-      // Define  tool radius (radius) parameter
-      double tool_radius_default = 0.5;
-      declare_parameter_if_not_declared(node_, name_ + ".tool_radius", rclcpp::ParameterValue(tool_radius_default));
-      node_->get_parameter(name_ + ".tool_radius", tool_radius_);
+      // TODO(Aron): These parameters are not used anymore, change parseGrid() function to work without?
+      // // Define robot radius (radius) parameter
+      // double robot_radius_default = 0.5;
+      // declare_parameter_if_not_declared(node_, name_ + ".robot_radius", rclcpp::ParameterValue(robot_radius_default));
+      // node_->get_parameter(name_ + ".robot_radius", robot_radius_);
+      // // Define tool radius (radius) parameter
+      // double tool_radius_default = 0.5;
+      // declare_parameter_if_not_declared(node_, name_ + ".tool_radius", rclcpp::ParameterValue(tool_radius_default));
+      // node_->get_parameter(name_ + ".tool_radius", tool_radius_);
 
-      // TODO(Aron): Define newly introduced parameters here, after moving them from the header to navigations_params.yaml
+      // Define vehicle width
+      double vehicle_width_default = 1.1;
+      declare_parameter_if_not_declared(node_, name_ + ".vehicle_width", rclcpp::ParameterValue(vehicle_width_default));
+      node_->get_parameter(name_ + ".vehicle_width", vehicle_width_);
+      // Define grid division factor (how many grids fit in one vehicle width)
+      int division_factor_default = 3;
+      declare_parameter_if_not_declared(node_, name_ + ".division_factor", rclcpp::ParameterValue(division_factor_default));
+      node_->get_parameter(name_ + ".division_factor", division_factor_);
+      // Define numer of intermediate footprints used to compute the swept path of a manoeuvre
+      int manoeuvre_resolution_default = 100;
+      declare_parameter_if_not_declared(node_, name_ + ".manoeuvre_resolution", rclcpp::ParameterValue(manoeuvre_resolution_default));
+      node_->get_parameter(name_ + ".manoeuvre_resolution", manoeuvre_resolution_);
 
       initialized_ = true;
     }
@@ -331,7 +342,7 @@ namespace full_coverage_path_planner
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "!!!!!!!!!!!! Starting a spiral from (x=%d, y=%d, yaw=%f) !!!!!!!!!!!!", init_x, init_y, yaw_start);
     path_nodes = spiral(grid, path_nodes, yaw_start, visited); // First spiral fill
 
-    visualizeSpirals(path_nodes, "first_spiral", 0.2, 0.5, 0.0, 0.6, 0.0);
+    visualizeSpiral(path_nodes, "first_spiral", 0.2, 0.5, 0.0, 0.6, 0.0);
 
     std::list<Point_t> goals = map_2_goals(visited, eNodeOpen); // Retrieve remaining goal points
 
@@ -449,7 +460,7 @@ namespace full_coverage_path_planner
       path_nodes_spiral.erase(path_nodes_spiral.begin(), it);
       if (path_nodes_spiral.size() > 1)
       {
-        SpiralSTC::visualizeSpirals(path_nodes_spiral, "spiral" + std::to_string(goals.size() + 1), 0.2, 0.5, 0.0, 0.6, 0.0);
+        SpiralSTC::visualizeSpiral(path_nodes_spiral, "spiral" + std::to_string(goals.size() + 1), 0.2, 0.5, 0.0, 0.6, 0.0);
       }
 
       goals = map_2_goals(visited, eNodeOpen); // Retrieve remaining goal points
@@ -486,7 +497,7 @@ namespace full_coverage_path_planner
     double yaw_start;
 
     std::vector<std::vector<bool>> grid;
-    if (!parseGrid(costmap_, grid, (tool_width * 2)/division_factor, (tool_width * 2)/division_factor, start, start_point, yaw_start))
+    if (!parseGrid(costmap_, grid, vehicle_width_/division_factor_, vehicle_width_/division_factor_, start, start_point, yaw_start))
     {
       RCLCPP_ERROR(rclcpp::get_logger("FullCoveragePathPlanner"), "Could not parse retrieved grid");
       return false;
@@ -544,9 +555,10 @@ namespace full_coverage_path_planner
 
     parsePointlist2Plan(start, goal_points, plan);
 
+    // TODO(Aron): These metrics are not all correct anymore, need to be fixed
     // Print some metrics:
     spiral_cpp_metrics_.accessible_counter = spiral_cpp_metrics_.visited_counter - spiral_cpp_metrics_.multiple_pass_counter;
-    spiral_cpp_metrics_.total_area_covered = (4.0 * tool_radius_ * tool_radius_) * spiral_cpp_metrics_.accessible_counter;
+    // spiral_cpp_metrics_.total_area_covered = (4.0 * tool_radius_ * tool_radius_) * spiral_cpp_metrics_.accessible_counter;
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Total visited: %d", spiral_cpp_metrics_.visited_counter);
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Total re-visited: %d", spiral_cpp_metrics_.multiple_pass_counter);
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Total accessible cells: %d", spiral_cpp_metrics_.accessible_counter);
@@ -674,10 +686,10 @@ namespace full_coverage_path_planner
 
     // Determine the footprint of the intermediate poses of the manoeuvre
     std::vector<nav2_costmap_2d::MapLocation> intermediate_cells;
-    for (int i = 1; i < N_footprints; i++)
+    for (int i = 1; i < manoeuvre_resolution_; i++)
     {
       std::vector<nav2_costmap_2d::MapLocation> cells;
-      yaw_inter = yaw1 + (i*(yaw_diff))/(N_footprints+1);
+      yaw_inter = yaw1 + (i*(yaw_diff))/(manoeuvre_resolution_+1);
       if (yaw_inter > M_PI)
       {
         yaw_inter = yaw_inter - 2*M_PI; // Wrap angle back to (-PI, PI]
@@ -836,7 +848,7 @@ namespace full_coverage_path_planner
     grid_pub->publish(grid_cubes);
   }
 
-  void SpiralSTC::visualizeSpirals(std::list<gridNode_t> &spiral_nodes, std::string name_space, float w, float a, float r, float g, float b)
+  void SpiralSTC::visualizeSpiral(std::list<gridNode_t> &spiral_nodes, std::string name_space, float w, float a, float r, float g, float b)
   {
     visualization_msgs::msg::Marker spiral = lineStrip(global_frame_.c_str(), name_space, 0, w, a, r, g, b);
     geometry_msgs::msg::Point p;

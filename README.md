@@ -137,9 +137,9 @@ For use in move_base(\_flex) as "base_global_planner"="full_coverage_path_planne
 
 #### Parameters
 
-* **`robot_radius`**: robot radius, which is used by the CPP algorithm to check for collisions with static map
-* **`tool_radius`**: tool radius, which is used by the CPP algorithm to discretize the space and find a full coverage plan
-
+* **`vehicle_width`**: vehicle width, which is used by the CPP algorithm to discretize the space together with the parameter below.
+* **`division_factor`**: division factor, which is used by the CPP algorithm to discretize the space in grids a factor smaller than the vehicle width
+* **`manoeuvre_resolution`**: manoeuvre resolution, which is the number of footprints used to compute the swept path by a manoeuvre to retreive the underlying grids
 
 ## References
 

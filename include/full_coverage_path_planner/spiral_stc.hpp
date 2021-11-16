@@ -71,7 +71,7 @@ namespace full_coverage_path_planner
     void deactivate() override;
 
     /**
-     * @brief Creating a plan from start and goal poses
+     * @brief Creating a plan from a start pose to a goal pose
      * @param start Start pose
      * @param goal Goal pose
      * @return nav_msgs::Path of the generated path
@@ -89,20 +89,14 @@ namespace full_coverage_path_planner
 
     void visualizeGridlines();
 
-    void visualizeSpirals(std::list<gridNode_t> &spiralNodes, std::string name_space, float w, float a, float r, float g, float b);
+    void visualizeSpiral(std::list<gridNode_t> &spiral_nodes, std::string name_space, float w, float a, float r, float g, float b);
 
   protected:
 
-    // TODO(Aron): Make these node parameters (update README accordingly)
-    // Planner parameters
-    double tool_width = 0.55; // The width of the vehicle which determines the grid size for the planner
-    int division_factor = 3; // Grid size is chosen as tool width divided by this factor (preferably an uneven number)
+    // Temporary for debugging or testing purposes
     int max_overlap;
     int max_overlap_forward = 0; // Maximum allowable overlapping grids between a forward menoeuvre and already visited grids
     int max_overlap_turn = 4; // Maximum allowable overlapping grids between a turning menoeuvre and already visited grids
-    int N_footprints = 100; // Orientation steps in between footprint 1 and footprint 2 to check for a manoeuvre
-
-    // Temporary for debugging purposes
     int spiral_counter = 0; // Limit the amount of spirals planned
     std::vector<std::vector<bool>> visited_copy; // Only mark the spots covered by spirals (not A*)
 
