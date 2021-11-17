@@ -177,7 +177,7 @@ namespace full_coverage_path_planner
      * @param man_grids the output vector of map locations that are covered by the manoeuvre
      * @return a boolean that indicates if the entire manoeuvre lies inside the map boundaries
      */
-    bool computeManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
+    bool computeManoeuvreFootprint(int &x1, int &y1, double &yaw1, int &x2, int &y2, double yaw2, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
 
     /**
      * Rotate a point on the grid around another point on the grid via conversion to world coordinates

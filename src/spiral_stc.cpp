@@ -246,7 +246,7 @@ namespace full_coverage_path_planner
         int overlap = 0;
         std::vector<nav2_costmap_2d::MapLocation> visited_cells;
         visited_cells.clear();
-        computeManoeuvreFootprint(x1, y1, x2, y2, yaw1, "tool", visited_cells); // TODO(Aron): Precompute and reuse this just like with the vehicle manoeuvres
+        computeManoeuvreFootprint(x1, y1, yaw1, x2, y2, std::atan2(y2-y1,x2-x1), "tool", visited_cells); // TODO(Aron): Precompute and reuse this just like with the vehicle manoeuvres
         for (const auto visited_cell : visited_cells)
         {
           if (grid[visited_cell.y][visited_cell.x] == eNodeOpen && visited[visited_cell.y][visited_cell.x] == eNodeVisited)
@@ -518,9 +518,9 @@ namespace full_coverage_path_planner
     double yaw = 0.0;
     // Compute the absolute swept path of the 3 basic manoeuvres
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Computing standard manoeuvres");
-    computeManoeuvreFootprint(mid_x, mid_y, mid_x, mid_y_plus_one, yaw, "vehicle", left_turn);
-    computeManoeuvreFootprint(mid_x, mid_y, mid_x_plus_one, mid_y, yaw, "vehicle", forward);
-    computeManoeuvreFootprint(mid_x, mid_y, mid_x, mid_y_minus_one, yaw, "vehicle", right_turn);
+    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x, mid_y_plus_one, std::atan2(mid_y_plus_one-mid_y, mid_x-mid_x), "vehicle", left_turn);
+    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x_plus_one, mid_y, std::atan2(mid_y-mid_y, mid_x_plus_one-mid_x), "vehicle", forward);
+    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x, mid_y_minus_one, std::atan2(mid_y_minus_one-mid_y, mid_x-mid_x), "vehicle", right_turn);
 
     // Convert absolute cell locations to relative cell locations for each manoeuvre
     left_turn_rel.resize(left_turn.size());
@@ -651,7 +651,7 @@ namespace full_coverage_path_planner
     return true;
   }
 
-  bool SpiralSTC::computeManoeuvreFootprint(int &x1, int &y1, int &x2, int &y2, double &yaw1, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids)
+  bool SpiralSTC::computeManoeuvreFootprint(int &x1, int &y1, double &yaw1, int &x2, int &y2, double yaw2, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids)
   {
     // Determine the footprint of the manoeuvre starting pose
     std::vector<nav2_costmap_2d::MapLocation> footprint1_cells;
@@ -663,9 +663,6 @@ namespace full_coverage_path_planner
     {
       return false;
     }
-
-    // Determine the orientation of the manoeuvre ending pose
-    double yaw2 = std::atan2(y2 - y1, x2 - x1);
 
     // Compute the footprints of all intermediate poses
     double yaw_diff, yaw_inter;
@@ -692,8 +689,13 @@ namespace full_coverage_path_planner
       yaw_inter = yaw1 + (i*(yaw_diff))/(manoeuvre_resolution_+1);
       if (yaw_inter > M_PI)
       {
-        yaw_inter = yaw_inter - 2*M_PI; // Wrap angle back to (-PI, PI]
+        yaw_inter -= 2*M_PI; // Wrap angle back to (-PI, PI]
       }
+      else if (yaw_inter < -M_PI)
+      {
+        yaw_inter += 2*M_PI;
+      }
+
       if (part == "vehicle" && !computeFootprintCells(x1, y1, yaw_inter, "vehicle", cells))
       {
         return false;
@@ -702,6 +704,7 @@ namespace full_coverage_path_planner
       {
           return false;
       }
+
       intermediate_cells.insert(intermediate_cells.end(), cells.begin(), cells.end());
     }
 
