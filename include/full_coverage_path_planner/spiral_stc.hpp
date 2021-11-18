@@ -96,23 +96,19 @@ namespace full_coverage_path_planner
     // Temporary for debugging or testing purposes
     int max_overlap;
     int max_overlap_forward = 0; // Maximum allowable overlapping grids between a forward menoeuvre and already visited grids
-    int max_overlap_turn = 4; // Maximum allowable overlapping grids between a turning menoeuvre and already visited grids
+    int max_overlap_turn = 6; // Maximum allowable overlapping grids between a turning menoeuvre and already visited grids
     int spiral_counter = 0; // Limit the amount of spirals planned
     std::vector<std::vector<bool>> visited_copy; // Only mark the spots covered by spirals (not A*)
 
-    // Absolute manoeuvre footprints (in the vehicle's frame)
-    std::vector<nav2_costmap_2d::MapLocation> left_turn;
-    std::vector<nav2_costmap_2d::MapLocation> forward;
-    std::vector<nav2_costmap_2d::MapLocation> right_turn;
-    std::vector<nav2_costmap_2d::MapLocation> turn_around_left;
-    std::vector<nav2_costmap_2d::MapLocation> turn_around_right;
-
     // Relative manoeuvre footprints (in the vehicle's frame)
-    std::vector<Point_t> left_turn_rel;
-    std::vector<Point_t> forward_rel;
-    std::vector<Point_t> right_turn_rel;
-    std::vector<Point_t> turn_around_left_rel;
-    std::vector<Point_t> turn_around_right_rel;
+    std::vector<Point_t> vehicle_left_turn_rel;
+    std::vector<Point_t> vehicle_forward_rel;
+    std::vector<Point_t> vehicle_right_turn_rel;
+    std::vector<Point_t> vehicle_turn_around_left_rel;
+    std::vector<Point_t> vehicle_turn_around_right_rel;
+    std::vector<Point_t> tool_left_turn_rel;
+    std::vector<Point_t> tool_forward_rel;
+    std::vector<Point_t> tool_right_turn_rel;
 
     // Local costmap objects for the planner to store the grid and manipulate footprints
     nav2_costmap_2d::Costmap2D planner_grid;
@@ -189,6 +185,16 @@ namespace full_coverage_path_planner
     bool computeManoeuvreFootprint(int &x_current, int &y_current, double &yaw_current, int &x_next, int &y_next, double yaw_next, eRotateDirection direction, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
 
     /**
+     *
+     */
+    std::vector<Point_t> computeRelativeManoeuvreFootprint(int dx, int dy, double dyaw, eRotateDirection direction, std::string part);
+
+    /**
+     *
+     */
+    bool transformRelativeManoeuvre(int &x, int &y, double &yaw, std::vector<Point_t> &rel_man, std::vector<nav2_costmap_2d::MapLocation> &man_cells);
+
+    /**
      * Rotate a point on the grid around another point on the grid via conversion to world coordinates
      * @param poi_x the x coordinate of the point of interest that will rotate
      * @param poi_y the y coordinate of the point of interest that will rotate
@@ -211,6 +217,6 @@ namespace full_coverage_path_planner
 
     /**
      */
-    bool checkManoeuvreCollision(std::vector<nav2_costmap_2d::MapLocation> &man_grids, std::vector<std::vector<bool>> &grid);
+    bool checkManoeuvreCollision(std::vector<nav2_costmap_2d::MapLocation> &man_grids, std::vector<std::vector<bool>> const &grid);
   };
 }  // namespace full_coverage_path_planner

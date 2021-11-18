@@ -105,7 +105,7 @@ namespace full_coverage_path_planner
   std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool>> const &grid, std::list<gridNode_t> &init,
                                           double &yaw_start, std::vector<std::vector<bool>> &visited)
   {
-    std::list<gridNode_t> path_nodes(init); // Copy incoming list to path_nodes
+    std::list<gridNode_t> path_nodes(init); // Copy incoming init list to path_nodes
     std::list<gridNode_t>::iterator it = --(path_nodes.end()); // Create iterator and let it point to the last element of end
     if (path_nodes.size() > 1) // If list is length 1, keep iterator at end
     {
@@ -132,110 +132,126 @@ namespace full_coverage_path_planner
     }
 
     // Start the spiralling procedure
-    gridNode_t safe_node;
-    std::vector<nav2_costmap_2d::MapLocation> man_cells;
     bool done = false;
+    std::vector<nav2_costmap_2d::MapLocation> man_cells, visited_cells, unsafe_visited_cells;
+    std::list<gridNode_t>::iterator it_safe_node;
     while (!done)
     {
+      int x_current = path_nodes.back().pos.x;
+      int y_current = path_nodes.back().pos.y;
+
       if (it != path_nodes.begin())
       {
         // Turn counter-clockwise
-        dx = path_nodes.back().pos.x - prev.pos.x;
-        dy = path_nodes.back().pos.y - prev.pos.y;
+        dx = x_current - prev.pos.x;
+        dy = y_current - prev.pos.y;
         yaw_current = std::atan2(dy,dx); // Keep overwriting the orientation according to the last two nodes
         dx_prev = dx;
         dx = -dy;
         dy = dx_prev;
       }
 
+      // Save the starting node as the most recent safe node if indeed it is safe to turn around
+      bool current_node_is_safe = false;
+      if (transformRelativeManoeuvre(x_current, y_current, yaw_current, vehicle_turn_around_left_rel, man_cells))
+      {
+        if (checkManoeuvreCollision(man_cells, grid))
+        {
+          unsafe_visited_cells.clear();
+          it_safe_node = --(path_nodes.end()); // Can turn around left without obstacles or going out of bounds, so remember as a safe node
+          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Node below is a safe node");
+          current_node_is_safe = true;
+        }
+      }
+      if (transformRelativeManoeuvre(x_current, y_current, yaw_current, vehicle_turn_around_right_rel, man_cells))
+      {
+        if (checkManoeuvreCollision(man_cells, grid))
+        {
+          unsafe_visited_cells.clear();
+          it_safe_node = --(path_nodes.end()); // Can turn around right without obstacles or going out of bounds, so remember as a safe node
+          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Node below is a safe node");
+          current_node_is_safe = true;
+        }
+      }
+
       // Loop over the three possible directions: left, forward, right (directions taken before counter-clockwise turn)
       done = true; // This condition might change in the loop below
+      int collision_manoeuvres = 0; // Counting how many manoeuvres result in a collision
       for (size_t i = 0; i < 3; ++i)
       {
-        int x_current = path_nodes.back().pos.x;
-        int y_current = path_nodes.back().pos.y;
         int x_next = path_nodes.back().pos.x + dx;
         int y_next = path_nodes.back().pos.y + dy;
         double yaw_next = std::atan2(y_next-y_current,x_next-x_current);
         RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoeuvre from (x=%d, y=%d, yaw=%f) to (x=%d, y=%d, yaw=%f)", x_current, y_current, yaw_current, x_next, y_next, yaw_next);
-        bool man_is_free = true; // This condition might change in the loop below
-
-        // Determine map extremes
-        int x_max = planner_grid.getSizeInCellsX() - 1;
-        int y_max = planner_grid.getSizeInCellsY() - 1;
 
         // Apply a rotation to the relative manoeuvre cells to convert from robot frame to world frame
-        man_cells.clear(); // Clear the cell vector of te manoeuvre before filling it again
-        if (i == 0) // Relative left turn manoeuvre
+        bool man_is_free = true; // This condition might change in the loop below
+
+        if (i == 0) // Transform standard relative left turn manoeuvre
         {
-          man_cells.resize(left_turn_rel.size());
-          for (uint i = 0; i < left_turn_rel.size(); i++)
+          if (!transformRelativeManoeuvre(x_current, y_current, yaw_current, vehicle_left_turn_rel, man_cells) ||
+              !transformRelativeManoeuvre(x_current, y_current, yaw_current, tool_left_turn_rel, visited_cells))
           {
-            Point_t p = rotatePoint(x_current + left_turn_rel[i].x, y_current + left_turn_rel[i].y, x_current, y_current, yaw_current);
-            if (!checkMapBounds(p.x, p.y, x_max, y_max))
-            {
-              RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoevre out of bounds, looking in other directions...");
-              man_is_free = false;
-              break;
-            }
-            else
-            {
-              man_cells[i] = {static_cast<uint>(p.x), static_cast<uint>(p.y)};
-            }
+            man_is_free = false;
+            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> out of bounds, looking in other directions...");
           }
           max_overlap = max_overlap_turn;
         }
-        else if (i == 1) // Relative forward manoeuvre
+        else if (i == 1) // Transform standard relative forward manoeuvre
         {
-          man_cells.resize(forward_rel.size());
-          for (uint i = 0; i < forward_rel.size(); i++)
+          if (!transformRelativeManoeuvre(x_current, y_current, yaw_current, vehicle_forward_rel, man_cells) ||
+              !transformRelativeManoeuvre(x_current, y_current, yaw_current, tool_forward_rel, visited_cells))
           {
-            Point_t p = rotatePoint(x_current + forward_rel[i].x, y_current + forward_rel[i].y, x_current, y_current, yaw_current);
-            if (!checkMapBounds(p.x, p.y, x_max, y_max))
-            {
-              RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoevre out of bounds, looking in other directions...");
-              man_is_free = false;
-              break;
-            }
-            else
-            {
-              man_cells[i] = {static_cast<uint>(p.x), static_cast<uint>(p.y)};
-            }
+            man_is_free = false;
+            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> out of bounds, looking in other directions...");
           }
           max_overlap = max_overlap_forward;
         }
-        else if (i == 2) // Relative right turn manoeuvre
+        else if (i == 2) // Transform standard relative right turn manoeuvre
         {
-          man_cells.resize(right_turn_rel.size());
-          for (uint i = 0; i < right_turn_rel.size(); i++)
+          if (!transformRelativeManoeuvre(x_current, y_current, yaw_current, vehicle_right_turn_rel, man_cells) ||
+              !transformRelativeManoeuvre(x_current, y_current, yaw_current, tool_right_turn_rel, visited_cells))
           {
-            Point_t p = rotatePoint(x_current + right_turn_rel[i].x, y_current + right_turn_rel[i].y, x_current, y_current, yaw_current);
-            if (!checkMapBounds(p.x, p.y, x_max, y_max))
-            {
-              RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  Manoevre out of bounds, looking in other directions...");
-              man_is_free = false;
-              break;
-            }
-            else
-            {
-              man_cells[i] = {static_cast<uint>(p.x), static_cast<uint>(p.y)};
-            }
+            man_is_free = false;
+            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> out of bounds, looking in other directions...");
           }
           max_overlap = max_overlap_turn;
         }
 
-        // Check the manoeuvre cells of the vehicle for collisions
-        if (!checkManoeuvreCollision(man_grids, grid))
+        // Check the transformed manoeuvre cells of the vehicle for collisions
+        if (!checkManoeuvreCollision(man_cells, grid))
         {
+          collision_manoeuvres += 1;
           man_is_free = false;
+          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> causing a collision, looking in other directions");
+        }
+
+        gridNode_t test = *(it_safe_node);
+        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "DEBUG: latest safe node is (x=%d,y=%d)", test.pos.x, test.pos.y);
+
+        if (collision_manoeuvres == 3)
+        {
+          std::list<gridNode_t>::iterator it_start_unsafe_path = ++(it_safe_node);
+          gridNode_t tester2 = *(it_start_unsafe_path);
+          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "DEBUG: start of unsafe path (x=%d,y=%d)", tester2.pos.x, tester2.pos.y);
+          path_nodes.erase(it_start_unsafe_path, path_nodes.end());
+          for (const auto node : path_nodes)
+          {
+            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "DEBUG: path node (x=%d,y=%d)", node.pos.x, node.pos.y);
+          }
+          for (const auto unsafe_visited_cell : unsafe_visited_cells)
+          {
+            visited[unsafe_visited_cell.y][unsafe_visited_cell.x] = eNodeOpen;
+            visited_copy[unsafe_visited_cell.y][unsafe_visited_cell.x] = eNodeOpen;
+          }
+          prev = path_nodes.back();
+          it = --(path_nodes.end());
+          done = false;
           break;
         }
 
         // Check the manoeuvre cells of the tool for overlap
         int overlap = 0;
-        std::vector<nav2_costmap_2d::MapLocation> visited_cells;
-        visited_cells.clear();
-        computeManoeuvreFootprint(x_current, y_current, yaw_current, x_next, y_next, std::atan2(y_next-y_current,x_next-x_current), eAnyDirection, "tool", visited_cells); // TODO(Aron): Precompute and reuse this just like with the vehicle manoeuvres
         for (const auto visited_cell : visited_cells)
         {
           if (grid[visited_cell.y][visited_cell.x] == eNodeOpen && visited[visited_cell.y][visited_cell.x] == eNodeVisited)
@@ -243,40 +259,8 @@ namespace full_coverage_path_planner
             overlap++;
           }
         }
-        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> with size=%lu (& %lu) of which %d are overlapping", man_cells.size(), visited_cells.size(), overlap);
 
-        // Check if it can still go either right or left at the final orientation
-        std::vector<Point_t> future_left, future_right;
-        future_left.resize(left_turn_rel.size());
-        for (uint i = 0; i < left_turn_rel.size(); i++)
-        {
-          Point_t p = rotatePoint(x_next + left_turn_rel[i].x, y_next + left_turn_rel[i].y, x_next, y_next, yaw_next);
-          future_left[i] = {p.x, p.y};
-        }
-        future_right.resize(right_turn_rel.size());
-        for (uint i = 0; i < right_turn_rel.size(); i++)
-        {
-          Point_t p = rotatePoint(x_next + right_turn_rel[i].x, y_next + right_turn_rel[i].y, x_next, y_next, yaw_next);
-          future_right[i] = {p.x, p.y};
-        }
-        bool future_left_rejected = false;
-        bool future_right_rejected = false;
-        for (uint i = 0; i < future_left.size(); i++)
-        {
-          if (!checkMapBounds(future_left[i].x, future_left[i].y, x_max, y_max) || grid[future_left[i].y][future_left[i].x] == eNodeVisited)
-          {
-            future_left_rejected = true;
-          }
-          if (!checkMapBounds(future_right[i].x, future_right[i].y, x_max, y_max) || grid[future_right[i].y][future_right[i].x] == eNodeVisited)
-          {
-            future_right_rejected = true;
-          }
-        }
-        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> causing collision: %d, future left rejected: %d, future right rejected: %d", !man_is_free, future_left_rejected, future_right_rejected);
-        if (future_left_rejected && future_right_rejected)
-        {
-          man_is_free = false; // Do not make the manoeuvre if it is not possible to turn right or left at the next step
-        }
+        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> with size=%lu (& %lu for tool) of which %d are overlapping", man_cells.size(), visited_cells.size(), overlap);
 
         // When all conditions are met, add the point to path_nodes and mark the covered cells as visited
         if (man_is_free && overlap <= max_overlap)
@@ -286,6 +270,10 @@ namespace full_coverage_path_planner
           prev = path_nodes.back();
           path_nodes.push_back(new_node);
           it = --(path_nodes.end());
+          if (!current_node_is_safe)
+          {
+            unsafe_visited_cells.insert(unsafe_visited_cells.end(), visited_cells.begin(), visited_cells.end());
+          }
           for (const auto visited_cell : visited_cells)
           {
             visited[visited_cell.y][visited_cell.x] = eNodeVisited;
@@ -340,7 +328,7 @@ namespace full_coverage_path_planner
     while (goals.size() != 0)
     {
       spiral_counter++; // Count number of spirals planned
-      if (spiral_counter == 2)
+      if (spiral_counter == 1)
       {
         RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "@@@@@@@@@ BREAK INSERTED TO ONLY PLAN CERTAIN AMOUNT OF SPIRALS @@@@@@@@@"); // For debugging purposes
         break;
@@ -494,57 +482,15 @@ namespace full_coverage_path_planner
     visualizeGridlines();
     visualizeGrid(grid, "grid_cubes", 0.6, 0.0, 0.0, 0.0);
 
-    // Find a location on the map so that the manoeuvre will not be out of bounds (not relevant)
-    int mid_x = planner_grid.getSizeInCellsX()/2;
-    int mid_y = planner_grid.getSizeInCellsY()/2;
-    int mid_x_plus_one = mid_x+1;
-    int mid_y_plus_one = mid_y+1;
-    int mid_y_minus_one = mid_y-1;
-    double yaw = 0.0;
-    // Compute the absolute swept path of the 3 basic manoeuvres
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Computing standard manoeuvres");
-    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x, mid_y_plus_one, std::atan2(mid_y_plus_one-mid_y, mid_x-mid_x), eAnyDirection, "vehicle", left_turn);
-    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x_plus_one, mid_y, std::atan2(mid_y-mid_y, mid_x_plus_one-mid_x), eAnyDirection, "vehicle", forward);
-    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x, mid_y_minus_one, std::atan2(mid_y_minus_one-mid_y, mid_x-mid_x), eAnyDirection, "vehicle", right_turn);
-    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x, mid_y, yaw + M_PI, eCounterClockwise, "vehicle", turn_around_left);
-    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x, mid_y, yaw + M_PI, eClockwise, "vehicle", turn_around_right);
-
-    // Convert absolute cell locations to relative cell locations for each manoeuvre
-    left_turn_rel.resize(left_turn.size());
-    forward_rel.resize(forward.size());
-    right_turn_rel.resize(right_turn.size());
-    turn_around_left_rel.resize(turn_around_left.size());
-    turn_around_right_rel.resize(turn_around_right.size());
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Left (relative) turn manoeuvre below:");
-    for (uint i = 0; i < left_turn.size(); i++)
-    {
-      left_turn_rel[i] = {(int)left_turn[i].x - mid_x, (int)left_turn[i].y - mid_y};
-      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), (" cell: (x=" + std::to_string(left_turn_rel[i].x) + " , y=" + std::to_string(left_turn_rel[i].y) + ")").c_str());
-    }
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Forward (relative) manoeuvre below:");
-    for (uint i = 0; i < forward.size(); i++)
-    {
-      forward_rel[i] = {(int)forward[i].x - mid_x, (int)forward[i].y - mid_y};
-      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), (" cell: (x=" + std::to_string(forward_rel[i].x) + " , y=" + std::to_string(forward_rel[i].y) + ")").c_str());
-    }
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Right (relative) turn manoeuvre below:");
-    for (uint i = 0; i < right_turn.size(); i++)
-    {
-      right_turn_rel[i] = {(int)right_turn[i].x - mid_x, (int)right_turn[i].y - mid_y};
-      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), (" cell: (x=" + std::to_string(right_turn_rel[i].x) + " , y=" + std::to_string(right_turn_rel[i].y) + ")").c_str());
-    }
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Turn around left (relative) manoeuvre below:");
-    for (uint i = 0; i < turn_around_left.size(); i++)
-    {
-      turn_around_left_rel[i] = {(int)turn_around_left[i].x - mid_x, (int)turn_around_left[i].y - mid_y};
-      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), (" cell: (x=" + std::to_string(turn_around_left_rel[i].x) + " , y=" + std::to_string(turn_around_left_rel[i].y) + ")").c_str());
-    }
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Turn around right (relative) manoeuvre below:");
-    for (uint i = 0; i < turn_around_right.size(); i++)
-    {
-      turn_around_right_rel[i] = {(int)turn_around_right[i].x - mid_x, (int)turn_around_right[i].y - mid_y};
-      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), (" cell: (x=" + std::to_string(turn_around_right_rel[i].x) + " , y=" + std::to_string(turn_around_right_rel[i].y) + ")").c_str());
-    }
+    // Compute the standard manoeuvres (for vehicle and tool) to be reused in the spiralling loop later
+    vehicle_left_turn_rel = computeRelativeManoeuvreFootprint(0, 1, std::atan2(1,0), eAnyDirection, "vehicle");
+    vehicle_forward_rel = computeRelativeManoeuvreFootprint(1, 0, std::atan2(0,1), eAnyDirection, "vehicle");
+    vehicle_right_turn_rel = computeRelativeManoeuvreFootprint(0, -1, std::atan2(-1,0), eAnyDirection, "vehicle");
+    vehicle_turn_around_left_rel = computeRelativeManoeuvreFootprint(0, 0, M_PI, eCounterClockwise, "vehicle");
+    vehicle_turn_around_right_rel = computeRelativeManoeuvreFootprint(0, 0, M_PI, eClockwise, "vehicle");
+    tool_left_turn_rel = computeRelativeManoeuvreFootprint(0, 1, std::atan2(1,0), eAnyDirection, "tool");
+    tool_forward_rel = computeRelativeManoeuvreFootprint(1, 0, std::atan2(0,1), eAnyDirection, "tool");
+    tool_right_turn_rel = computeRelativeManoeuvreFootprint(0, -1, std::atan2(-1,0), eAnyDirection, "tool");
 
     std::list<Point_t> goal_points = spiral_stc(grid,
                                                start_point,
@@ -652,7 +598,7 @@ namespace full_coverage_path_planner
     return true;
   }
 
-  bool SpiralSTC::computeManoeuvreFootprint(int &x_current, int &y_current, double &yaw_current, int &x_next, int &y_next, double yaw_next, eRotateDirection direction, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids)
+  bool SpiralSTC::computeManoeuvreFootprint(int &x_current, int &y_current, double &yaw_current, int &x_next, int &y_next, double yaw_next, eRotateDirection direction, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_cells)
   {
     // Determine the footprint of the manoeuvre starting pose
     std::vector<nav2_costmap_2d::MapLocation> footprint1_cells;
@@ -691,8 +637,8 @@ namespace full_coverage_path_planner
     }
 
     // Determine the footprint of the intermediate poses of the manoeuvre
-    double yaw_inter;
     std::vector<nav2_costmap_2d::MapLocation> intermediate_cells;
+    double yaw_inter;
     for (int i = 1; i <= manoeuvre_resolution_-2; i++) // Substract 2 due to initial and final pose are computed seperately
     {
       std::vector<nav2_costmap_2d::MapLocation> cells;
@@ -776,6 +722,58 @@ namespace full_coverage_path_planner
     return true;
   }
 
+  std::vector<Point_t> SpiralSTC::computeRelativeManoeuvreFootprint(int dx, int dy, double dyaw, eRotateDirection direction, std::string part)
+  {
+    // Find a location on the map so that the manoeuvre will not be out of bounds
+    int x_start = planner_grid.getSizeInCellsX()/2;
+    int y_start = planner_grid.getSizeInCellsY()/2;
+    double yaw_start = 0.0; // relative manoeuvres are defined with respect to a rotation of 0.0
+
+    // Define the final pose after the manoeuvre
+    int x_end = x_start + dx;
+    int y_end = y_start + dy;
+    double yaw_end = yaw_start + dyaw;
+
+    // Compute the swepth path of the manoeuvre in terms of map locations
+    std::vector<nav2_costmap_2d::MapLocation> man_cells;
+    computeManoeuvreFootprint(x_start, y_start, yaw_start, x_end, y_end, yaw_end, direction, part, man_cells);
+
+    // Convert absolute cell locations to relative cell locations for each manoeuvre
+    std::vector<Point_t> man_cells_rel;
+    man_cells_rel.resize(man_cells.size());
+    for (size_t i = 0; i < man_cells_rel.size(); i++)
+    {
+      man_cells_rel[i] = {(int)man_cells[i].x - x_start, (int)man_cells[i].y - y_start};
+    }
+
+    return man_cells_rel;
+  }
+
+  bool SpiralSTC::transformRelativeManoeuvre(int &x, int &y, double &yaw, std::vector<Point_t> &rel_man, std::vector<nav2_costmap_2d::MapLocation> &man_cells)
+  {
+    // Determine map extremes
+    int x_max = planner_grid.getSizeInCellsX() - 1;
+    int y_max = planner_grid.getSizeInCellsY() - 1;
+
+    // Transform (translate and rotate) the relative manoeuvre to the input map location
+    man_cells.clear();
+    man_cells.resize(rel_man.size());
+    for (size_t i = 0; i < man_cells.size(); i++)
+    {
+      Point_t p = rotatePoint(x + rel_man[i].x, y + rel_man[i].y, x, y, yaw);
+      if (!checkMapBounds(p.x, p.y, x_max, y_max))
+      {
+        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoevre after transformation out of bounds");
+        return false;
+      }
+      else
+      {
+        man_cells[i] = {static_cast<uint>(p.x), static_cast<uint>(p.y)};
+      }
+    }
+    return true;
+  }
+
   Point_t SpiralSTC::rotatePoint(int poi_x, int poi_y, int &icr_x, int &icr_y, double &yaw)
   {
     Point_t p;
@@ -797,7 +795,7 @@ namespace full_coverage_path_planner
     return true;
   }
 
-  bool SpiralSTC::checkManoeuvreCollision(std::vector<nav2_costmap_2d::MapLocation> &man_grids, std::vector<std::vector<bool>> &grid)
+  bool SpiralSTC::checkManoeuvreCollision(std::vector<nav2_costmap_2d::MapLocation> &man_grids, std::vector<std::vector<bool>> const &grid)
   {
     for (const auto man_grid : man_grids)
     {
@@ -806,6 +804,7 @@ namespace full_coverage_path_planner
         return false;
       }
     }
+    return true;
   }
 
   /* @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
