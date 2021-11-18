@@ -104,11 +104,15 @@ namespace full_coverage_path_planner
     std::vector<nav2_costmap_2d::MapLocation> left_turn;
     std::vector<nav2_costmap_2d::MapLocation> forward;
     std::vector<nav2_costmap_2d::MapLocation> right_turn;
+    std::vector<nav2_costmap_2d::MapLocation> turn_around_left;
+    std::vector<nav2_costmap_2d::MapLocation> turn_around_right;
 
     // Relative manoeuvre footprints (in the vehicle's frame)
     std::vector<Point_t> left_turn_rel;
     std::vector<Point_t> forward_rel;
     std::vector<Point_t> right_turn_rel;
+    std::vector<Point_t> turn_around_left_rel;
+    std::vector<Point_t> turn_around_right_rel;
 
     // Local costmap objects for the planner to store the grid and manipulate footprints
     nav2_costmap_2d::Costmap2D coarse_grid;
@@ -117,6 +121,10 @@ namespace full_coverage_path_planner
     // Publishers for the planner output
     std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> grid_pub;
     std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> spirals_pub;
+
+    // Enumeration of possible rotate directions of a manoeuvre
+    // When eAnyDirection is used, the shortest rotation is preferred. If both directions are equal in length, counter-clockwise is the default
+    enum eRotateDirection {eClockwise, eAnyDirection, eCounterClockwise};
 
     /**
      * @brief Given a goal pose in the world, compute a plan
@@ -177,7 +185,7 @@ namespace full_coverage_path_planner
      * @param man_grids the output vector of map locations that are covered by the manoeuvre
      * @return a boolean that indicates if the entire manoeuvre lies inside the map boundaries
      */
-    bool computeManoeuvreFootprint(int &x1, int &y1, double &yaw1, int &x2, int &y2, double yaw2, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
+    bool computeManoeuvreFootprint(int &x1, int &y1, double &yaw1, int &x2, int &y2, double yaw2, eRotateDirection direction, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
 
     /**
      * Rotate a point on the grid around another point on the grid via conversion to world coordinates
@@ -199,5 +207,9 @@ namespace full_coverage_path_planner
      * @return a boolean that is true when the cell of interest lies inside the map boundaries
      */
     bool checkMapBounds(int x, int y, int &x_max, int &y_max);
+
+    /**
+     */
+    bool checkManoeuvreCollision(std::vector<nav2_costmap_2d::MapLocation> &man_grids, std::vector<std::vector<bool>> &grid);
   };
 }  // namespace full_coverage_path_planner

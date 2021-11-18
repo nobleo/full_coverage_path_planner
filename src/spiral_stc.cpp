@@ -141,7 +141,9 @@ namespace full_coverage_path_planner
       visited_copy[cell.y][cell.x] = eNodeVisited;
     }
 
+    // Start the spiralling procedure
     std::vector<nav2_costmap_2d::MapLocation> man_grids;
+    gridNode_t safe_node;
     bool done = false;
     while (!done)
     {
@@ -155,8 +157,9 @@ namespace full_coverage_path_planner
         dx = -dy;
         dy = dx_prev;
       }
-      done = true; // This condition might change in the loop below
+
       // Loop over the three possible directions: left, forward, right (directions taken before counter-clockwise turn)
+      done = true; // This condition might change in the loop below
       for (size_t i = 0; i < 3; ++i)
       {
         int x1 = path_nodes.back().pos.x;
@@ -165,7 +168,6 @@ namespace full_coverage_path_planner
         int y2 = path_nodes.back().pos.y + dy;
         double yaw2 = std::atan2(y2-y1,x2-x1);
 
-        man_grids.clear(); // Clear the cell vector of te manoeuvre before filling it again
         RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Manoeuvre from (x=%d, y=%d, yaw=%f) to (x=%d, y=%d, yaw=%f)", x1, y1, yaw1, x2, y2, yaw2);
         bool man_is_free = true; // This condition might change in the loop below
 
@@ -174,6 +176,7 @@ namespace full_coverage_path_planner
         int y_max = coarse_grid.getSizeInCellsY() - 1;
 
         // Apply a rotation to the relative manoeuvre cells to convert from robot frame to world frame
+        man_grids.clear(); // Clear the cell vector of te manoeuvre before filling it again
         if (i == 0) // Relative left turn manoeuvre
         {
           man_grids.resize(left_turn_rel.size());
@@ -233,20 +236,17 @@ namespace full_coverage_path_planner
         }
 
         // Check the manoeuvre cells of the vehicle for collisions
-        for (const auto man_grid : man_grids)
+        if (!checkManoeuvreCollision(man_grids, grid))
         {
-          if (grid[man_grid.y][man_grid.x] == eNodeVisited)
-          {
-            man_is_free = false;
-            break;
-          }
+          man_is_free = false;
+          break;
         }
 
         // Check the manoeuvre cells of the tool for overlap
         int overlap = 0;
         std::vector<nav2_costmap_2d::MapLocation> visited_cells;
         visited_cells.clear();
-        computeManoeuvreFootprint(x1, y1, yaw1, x2, y2, std::atan2(y2-y1,x2-x1), "tool", visited_cells); // TODO(Aron): Precompute and reuse this just like with the vehicle manoeuvres
+        computeManoeuvreFootprint(x1, y1, yaw1, x2, y2, std::atan2(y2-y1,x2-x1), eAnyDirection, "tool", visited_cells); // TODO(Aron): Precompute and reuse this just like with the vehicle manoeuvres
         for (const auto visited_cell : visited_cells)
         {
           if (grid[visited_cell.y][visited_cell.x] == eNodeOpen && visited[visited_cell.y][visited_cell.x] == eNodeVisited)
@@ -518,15 +518,19 @@ namespace full_coverage_path_planner
     double yaw = 0.0;
     // Compute the absolute swept path of the 3 basic manoeuvres
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Computing standard manoeuvres");
-    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x, mid_y_plus_one, std::atan2(mid_y_plus_one-mid_y, mid_x-mid_x), "vehicle", left_turn);
-    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x_plus_one, mid_y, std::atan2(mid_y-mid_y, mid_x_plus_one-mid_x), "vehicle", forward);
-    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x, mid_y_minus_one, std::atan2(mid_y_minus_one-mid_y, mid_x-mid_x), "vehicle", right_turn);
+    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x, mid_y_plus_one, std::atan2(mid_y_plus_one-mid_y, mid_x-mid_x), eAnyDirection, "vehicle", left_turn);
+    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x_plus_one, mid_y, std::atan2(mid_y-mid_y, mid_x_plus_one-mid_x), eAnyDirection, "vehicle", forward);
+    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x, mid_y_minus_one, std::atan2(mid_y_minus_one-mid_y, mid_x-mid_x), eAnyDirection, "vehicle", right_turn);
+    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x, mid_y, yaw + M_PI, eCounterClockwise, "vehicle", turn_around_left);
+    computeManoeuvreFootprint(mid_x, mid_y, yaw, mid_x, mid_y, yaw + M_PI, eClockwise, "vehicle", turn_around_right);
 
     // Convert absolute cell locations to relative cell locations for each manoeuvre
     left_turn_rel.resize(left_turn.size());
     forward_rel.resize(forward.size());
     right_turn_rel.resize(right_turn.size());
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Left (relative) turn below:");
+    turn_around_left_rel.resize(turn_around_left.size());
+    turn_around_right_rel.resize(turn_around_right.size());
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Left (relative) turn manoeuvre below:");
     for (uint i = 0; i < left_turn.size(); i++)
     {
       left_turn_rel[i] = {(int)left_turn[i].x - mid_x, (int)left_turn[i].y - mid_y};
@@ -538,11 +542,23 @@ namespace full_coverage_path_planner
       forward_rel[i] = {(int)forward[i].x - mid_x, (int)forward[i].y - mid_y};
       RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), (" cell: (x=" + std::to_string(forward_rel[i].x) + " , y=" + std::to_string(forward_rel[i].y) + ")").c_str());
     }
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Right (relative) turn below:");
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Right (relative) turn manoeuvre below:");
     for (uint i = 0; i < right_turn.size(); i++)
     {
       right_turn_rel[i] = {(int)right_turn[i].x - mid_x, (int)right_turn[i].y - mid_y};
       RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), (" cell: (x=" + std::to_string(right_turn_rel[i].x) + " , y=" + std::to_string(right_turn_rel[i].y) + ")").c_str());
+    }
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Turn around left (relative) manoeuvre below:");
+    for (uint i = 0; i < turn_around_left.size(); i++)
+    {
+      turn_around_left_rel[i] = {(int)turn_around_left[i].x - mid_x, (int)turn_around_left[i].y - mid_y};
+      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), (" cell: (x=" + std::to_string(turn_around_left_rel[i].x) + " , y=" + std::to_string(turn_around_left_rel[i].y) + ")").c_str());
+    }
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Turn around right (relative) manoeuvre below:");
+    for (uint i = 0; i < turn_around_right.size(); i++)
+    {
+      turn_around_right_rel[i] = {(int)turn_around_right[i].x - mid_x, (int)turn_around_right[i].y - mid_y};
+      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), (" cell: (x=" + std::to_string(turn_around_right_rel[i].x) + " , y=" + std::to_string(turn_around_right_rel[i].y) + ")").c_str());
     }
 
     std::list<Point_t> goal_points = spiral_stc(grid,
@@ -651,7 +667,7 @@ namespace full_coverage_path_planner
     return true;
   }
 
-  bool SpiralSTC::computeManoeuvreFootprint(int &x1, int &y1, double &yaw1, int &x2, int &y2, double yaw2, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids)
+  bool SpiralSTC::computeManoeuvreFootprint(int &x1, int &y1, double &yaw1, int &x2, int &y2, double yaw2, eRotateDirection direction, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids)
   {
     // Determine the footprint of the manoeuvre starting pose
     std::vector<nav2_costmap_2d::MapLocation> footprint1_cells;
@@ -664,10 +680,8 @@ namespace full_coverage_path_planner
       return false;
     }
 
-    // Compute the footprints of all intermediate poses
-    double yaw_diff, yaw_inter;
-
     // Manually compute the difference in special cases
+    double yaw_diff;
     if (yaw1 == -0.5*M_PI && yaw2 == M_PI)
     {
       yaw_diff = -0.5*M_PI;
@@ -681,21 +695,35 @@ namespace full_coverage_path_planner
       yaw_diff = yaw2 - yaw1;
     }
 
+    // Dictate the rotation direction, unless direction = any
+    if (yaw_diff < 0 && direction == eCounterClockwise)
+    {
+      yaw_diff += 2*M_PI;
+    }
+    else if (yaw_diff > 0 && direction == eClockwise)
+    {
+      yaw_diff -= 2*M_PI;
+    }
+
     // Determine the footprint of the intermediate poses of the manoeuvre
+    double yaw_inter;
     std::vector<nav2_costmap_2d::MapLocation> intermediate_cells;
-    for (int i = 1; i < manoeuvre_resolution_; i++)
+    for (int i = 1; i <= manoeuvre_resolution_-2; i++) // Substract 2 due to initial and final pose are computed seperately
     {
       std::vector<nav2_costmap_2d::MapLocation> cells;
-      yaw_inter = yaw1 + (i*(yaw_diff))/(manoeuvre_resolution_+1);
+      yaw_inter = yaw1 + (i*yaw_diff)/(manoeuvre_resolution_-2);
+
+      // Wrap angle back to (-PI, PI]
       if (yaw_inter > M_PI)
       {
-        yaw_inter -= 2*M_PI; // Wrap angle back to (-PI, PI]
+        yaw_inter -= 2*M_PI;
       }
       else if (yaw_inter < -M_PI)
       {
         yaw_inter += 2*M_PI;
       }
 
+      // Compute intermediate footprint
       if (part == "vehicle" && !computeFootprintCells(x1, y1, yaw_inter, "vehicle", cells))
       {
         return false;
@@ -782,6 +810,17 @@ namespace full_coverage_path_planner
       return false;
     }
     return true;
+  }
+
+  bool SpiralSTC::checkManoeuvreCollision(std::vector<nav2_costmap_2d::MapLocation> &man_grids, std::vector<std::vector<bool>> &grid)
+  {
+    for (const auto man_grid : man_grids)
+    {
+      if (grid[man_grid.y][man_grid.x] == eNodeVisited)
+      {
+        return false;
+      }
+    }
   }
 
   /* @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
