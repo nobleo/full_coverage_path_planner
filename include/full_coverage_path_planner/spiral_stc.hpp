@@ -111,8 +111,8 @@ namespace full_coverage_path_planner
     std::vector<Point_t> right_turn_rel;
 
     // Local costmap objects for the planner to store the grid and manipulate footprints
-    nav2_costmap_2d::Costmap2D coarse_grid;
-    nav2_costmap_2d::Costmap2DROS *coarse_grid_ros;
+    nav2_costmap_2d::Costmap2D planner_grid;
+    nav2_costmap_2d::Costmap2DROS *planner_grid_ros;
 
     // Publishers for the planner output
     std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> grid_pub;
@@ -169,15 +169,16 @@ namespace full_coverage_path_planner
 
     /**
      * Compute the cells in a grid make up the swept path of a manoeuvre build from footprints
-     * @param x1 the x coordinate of the map location around which the initial footprint is defined
-     * @param y1 the y coordinate of the map location around which the initial footprint is defined
-     * @param x1 the x coordinate of the map location around which the final footprint is defined
-     * @param y1 the y coordinate of the map location around which the final footprint is defined
-     * @param yaw1 the starting orientation of the manoeuvre
-     * @param man_grids the output vector of map locations that are covered by the manoeuvre
+     * @param x_current the x coordinate of the map location around which the initial footprint is defined
+     * @param y_current the y coordinate of the map location around which the initial footprint is defined
+     * @param yaw_current the starting orientation of the manoeuvre
+     * @param x_next the x coordinate of the map location around which the final footprint is defined
+     * @param y_next the y coordinate of the map location around which the final footprint is defined
+     * @param yaw_next the final orientation of the manoeuvre
+     * @param man_cells the output vector of cells that are covered by the manoeuvre
      * @return a boolean that indicates if the entire manoeuvre lies inside the map boundaries
      */
-    bool computeManoeuvreFootprint(int &x1, int &y1, double &yaw1, int &x2, int &y2, double yaw2, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_grids);
+    bool computeManoeuvreFootprint(int &x_current, int &y_current, double &yaw_current, int &x_next, int &y_next, double yaw_next, std::string part, std::vector<nav2_costmap_2d::MapLocation> &man_cells);
 
     /**
      * Rotate a point on the grid around another point on the grid via conversion to world coordinates
