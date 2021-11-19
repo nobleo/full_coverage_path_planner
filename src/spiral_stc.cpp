@@ -119,7 +119,7 @@ namespace full_coverage_path_planner
     int dx_prev;
     double yaw_current = yaw_start; // This value will change later on
 
-    // Mark initial footprint as visited
+    // Mark initial footprint of the tool as visited
     std::vector<nav2_costmap_2d::MapLocation> init_cells;
     if (!computeFootprintCells(path_nodes.back().pos.x, path_nodes.back().pos.y, yaw_current, "tool", init_cells))
     {
@@ -133,6 +133,8 @@ namespace full_coverage_path_planner
 
     // Start the spiralling procedure
     bool done = false;
+    bool restored = false;
+    int explored_dir;
     std::vector<nav2_costmap_2d::MapLocation> man_cells, visited_cells, unsafe_visited_cells;
     std::list<gridNode_t>::iterator it_safe_node;
     while (!done)
@@ -145,7 +147,7 @@ namespace full_coverage_path_planner
         // Turn counter-clockwise
         dx = x_current - prev.pos.x;
         dy = y_current - prev.pos.y;
-        yaw_current = std::atan2(dy,dx); // Keep overwriting the orientation according to the last two nodes
+        yaw_current = std::atan2(dy,dx);
         dx_prev = dx;
         dx = -dy;
         dy = dx_prev;
@@ -157,28 +159,41 @@ namespace full_coverage_path_planner
       {
         if (checkManoeuvreCollision(man_cells, grid))
         {
+          current_node_is_safe = true;
           unsafe_visited_cells.clear();
           it_safe_node = --(path_nodes.end()); // Can turn around left without obstacles or going out of bounds, so remember as a safe node
-          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Node below is a safe node");
-          current_node_is_safe = true;
         }
       }
       if (transformRelativeManoeuvre(x_current, y_current, yaw_current, vehicle_turn_around_right_rel, man_cells))
       {
         if (checkManoeuvreCollision(man_cells, grid))
         {
+          current_node_is_safe = true;
           unsafe_visited_cells.clear();
           it_safe_node = --(path_nodes.end()); // Can turn around right without obstacles or going out of bounds, so remember as a safe node
-          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Node below is a safe node");
-          current_node_is_safe = true;
         }
       }
 
-      // Loop over the three possible directions: left, forward, right (directions taken before counter-clockwise turn)
-      done = true; // This condition might change in the loop below
-      int collision_manoeuvres = 0; // Counting how many manoeuvres result in a collision
-      for (size_t i = 0; i < 3; ++i)
+      int i_start = 0; // Create a variable that dictates in which direction (out of the 3) the spiral will start looking to explore
+      if (restored)
       {
+        // If the planner just restored to a recent safe node, set i_start, dx and dy so that it will try exploring the next untested direction
+        i_start = explored_dir + 1;
+        for (int i = 0; i < i_start; i++)
+        {
+          // Turn counter-clockwise until dx and dy represent the untested direction
+          dx_prev = dx;
+          dx = dy;
+          dy = -dx_prev;
+        }
+      }
+
+      // Loop over the three possible directions: left, forward, right (directions taken before initial counter-clockwise turn)
+      done = true; // This condition might change in the loop below
+      int collision_manoeuvres = 0; // Counting how many (of the three) manoeuvres result in a collision
+      for (int i = i_start; i < 3; ++i)
+      {
+        restored = false;
         int x_next = path_nodes.back().pos.x + dx;
         int y_next = path_nodes.back().pos.y + dy;
         double yaw_next = std::atan2(y_next-y_current,x_next-x_current);
@@ -186,7 +201,6 @@ namespace full_coverage_path_planner
 
         // Apply a rotation to the relative manoeuvre cells to convert from robot frame to world frame
         bool man_is_free = true; // This condition might change in the loop below
-
         if (i == 0) // Transform standard relative left turn manoeuvre
         {
           if (!transformRelativeManoeuvre(x_current, y_current, yaw_current, vehicle_left_turn_rel, man_cells) ||
@@ -221,32 +235,54 @@ namespace full_coverage_path_planner
         // Check the transformed manoeuvre cells of the vehicle for collisions
         if (!checkManoeuvreCollision(man_cells, grid))
         {
-          collision_manoeuvres += 1;
+          collision_manoeuvres += 1; // Keep track of how many of the tested directions are rejected due to a possible collision
           man_is_free = false;
           RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> causing a collision, looking in other directions");
         }
 
-        gridNode_t test = *(it_safe_node);
-        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "DEBUG: latest safe node is (x=%d,y=%d)", test.pos.x, test.pos.y);
+        gridNode_t safe_node = *(it_safe_node); // TODO(Aron): debug, eventually remove this
+        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> the most recent safe node is (x=%d,y=%d)", safe_node.pos.x, safe_node.pos.y);
 
-        if (collision_manoeuvres == 3)
+        if (collision_manoeuvres == 3) // Meaning all possible manoeuvres would result in a collision
         {
+          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "!!!!!!!!!!!! All 3 directions lead to a collision !!!!!!!!!!!!");
           std::list<gridNode_t>::iterator it_start_unsafe_path = ++(it_safe_node);
-          gridNode_t tester2 = *(it_start_unsafe_path);
-          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "DEBUG: start of unsafe path (x=%d,y=%d)", tester2.pos.x, tester2.pos.y);
+          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> length before removing unsafe nodes: %lu", path_nodes.size());
           path_nodes.erase(it_start_unsafe_path, path_nodes.end());
-          for (const auto node : path_nodes)
-          {
-            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "DEBUG: path node (x=%d,y=%d)", node.pos.x, node.pos.y);
-          }
+          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> length after removing unsafe nodes: %lu", path_nodes.size());
+
+          // Unmark the visited cells belonging to the removed nodes
           for (const auto unsafe_visited_cell : unsafe_visited_cells)
           {
             visited[unsafe_visited_cell.y][unsafe_visited_cell.x] = eNodeOpen;
             visited_copy[unsafe_visited_cell.y][unsafe_visited_cell.x] = eNodeOpen;
           }
-          prev = path_nodes.back();
+
+          // Restore footprints of some of the final nodes in the remaining path, as they were possibly affected by the above operation
+          for (int i = 0; i < 3; i++)
+          {
+            // TODO(Aron): if path_nodes is larger than size needed for this
+            std::list<gridNode_t>::iterator it = --(path_nodes.end());
+            std::advance(it, -i);
+            gridNode_t this_node = *(it);
+            std::advance(it, -i-1);
+            gridNode_t node_before = *(it);
+            double yaw = std::atan2(this_node.pos.y-node_before.pos.y, this_node.pos.x-node_before.pos.x);
+            std::vector<nav2_costmap_2d::MapLocation> cells;
+            computeFootprintCells(this_node.pos.x, this_node.pos.y, yaw, "tool", cells);
+            for (const auto cell : cells)
+            {
+              visited[cell.y][cell.x] = eNodeVisited;
+              visited_copy[cell.y][cell.x] = eNodeVisited;
+            }
+          }
+          // Set up variables needed for the continuation of the spiralling loop
           it = --(path_nodes.end());
+          std::list<gridNode_t>::iterator it_prev = --it;
+          prev = *(it_prev);
+          restored = true;
           done = false;
+          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "!!!!!!!!!!!! Restored to the most recent safe node !!!!!!!!!!!!");
           break;
         }
 
@@ -260,7 +296,7 @@ namespace full_coverage_path_planner
           }
         }
 
-        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> with size=%lu (& %lu for tool) of which %d are overlapping", man_cells.size(), visited_cells.size(), overlap);
+        RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "  --> manoeuvre size=%lu (& %lu for tool) of which %d are overlapping", man_cells.size(), visited_cells.size(), overlap);
 
         // When all conditions are met, add the point to path_nodes and mark the covered cells as visited
         if (man_is_free && overlap <= max_overlap)
@@ -270,10 +306,11 @@ namespace full_coverage_path_planner
           prev = path_nodes.back();
           path_nodes.push_back(new_node);
           it = --(path_nodes.end());
-          if (!current_node_is_safe)
+          if (current_node_is_safe) // Store the direction of exploration made from the safe node
           {
-            unsafe_visited_cells.insert(unsafe_visited_cells.end(), visited_cells.begin(), visited_cells.end());
+            explored_dir = i; // The for loop iterator that represents the chosen direction
           }
+          unsafe_visited_cells.insert(unsafe_visited_cells.end(), visited_cells.begin(), visited_cells.end()); // Will be cleared once a node is considered safe
           for (const auto visited_cell : visited_cells)
           {
             visited[visited_cell.y][visited_cell.x] = eNodeVisited;
@@ -391,6 +428,8 @@ namespace full_coverage_path_planner
       {
         break;
       }
+
+      visited = visited_copy;
 
       RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "--> size of A* path to closest open node is %lu", path_nodes.size());
 
@@ -541,7 +580,7 @@ namespace full_coverage_path_planner
       //TODO(Aron): This has to become a node parameter or something of that nature, not declared here
       std::vector<geometry_msgs::msg::Point> tool_footprint;
       geometry_msgs::msg::Point p;
-      p.x = 0.2;
+      p.x = -0.4; //0.2;
       p.y = 0.4;
       tool_footprint.push_back(p);
       p.x = 0.545;
@@ -550,7 +589,7 @@ namespace full_coverage_path_planner
       p.x = 0.545;
       p.y = -0.4;
       tool_footprint.push_back(p);
-      p.x = 0.2;
+      p.x = -0.4; //0.2;
       p.y = -0.4;
       tool_footprint.push_back(p);
       nav2_costmap_2d::transformFootprint(x_w, y_w, yaw, tool_footprint, footprint);

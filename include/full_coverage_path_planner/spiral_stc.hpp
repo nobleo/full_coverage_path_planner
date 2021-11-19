@@ -96,7 +96,7 @@ namespace full_coverage_path_planner
     // Temporary for debugging or testing purposes
     int max_overlap;
     int max_overlap_forward = 0; // Maximum allowable overlapping grids between a forward menoeuvre and already visited grids
-    int max_overlap_turn = 6; // Maximum allowable overlapping grids between a turning menoeuvre and already visited grids
+    int max_overlap_turn = 3; // Maximum allowable overlapping grids between a turning menoeuvre and already visited grids
     int spiral_counter = 0; // Limit the amount of spirals planned
     std::vector<std::vector<bool>> visited_copy; // Only mark the spots covered by spirals (not A*)
 
