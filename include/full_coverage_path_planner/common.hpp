@@ -16,7 +16,7 @@ typedef struct
 }
 Point_t;
 
-inline std::ostream &operator << (std::ostream &os, Point_t &p)
+inline std::ostream & operator<<(std::ostream & os, Point_t & p)
 {
   return os << "(" << p.x << ", " << p.y << ")";
 }
@@ -37,9 +37,9 @@ typedef struct
 }
 gridNode_t;
 
-inline std::ostream &operator << (std::ostream &os, gridNode_t &g)
+inline std::ostream & operator<<(std::ostream & os, gridNode_t & g)
 {
-  return os << "gridNode_t(" << g.cost << ", " << g.he << ", " << g.pos  << ")";
+  return os << "gridNode_t(" << g.cost << ", " << g.he << ", " << g.pos << ")";
 }
 
 typedef struct
@@ -48,7 +48,7 @@ typedef struct
 }
 dPoint_t;
 
-inline std::ostream &operator << (std::ostream &os, dPoint_t &p)
+inline std::ostream & operator<<(std::ostream & os, dPoint_t & p)
 {
   return os << "(" << p.x << ", " << p.y << ")";
 }
@@ -65,12 +65,12 @@ enum
  * @param goals Potential next points to find the closest of
  * @return Distance to the closest point (out of 'goals') to 'poi'
  */
-int distanceToClosestPoint(Point_t poi, std::list<Point_t> const &goals);
+int distanceToClosestPoint(Point_t poi, std::list<Point_t> const & goals);
 
 /**
  * Calculate the distance between two points, squared
  */
-int distanceSquared(const Point_t &p1, const Point_t &p2);
+int distanceSquared(const Point_t & p1, const Point_t & p2);
 
 /**
  * Perform A* shorted path finding from init to one of the points in heuristic_goals
@@ -82,9 +82,10 @@ int distanceSquared(const Point_t &p1, const Point_t &p2);
  * @param pathNodes nodes that form the path from init to the closest point in heuristic_goals
  * @return whether we resign from finding a path or not. true is we resign and false if we found a path
  */
-bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_t init, int cost,
-                          std::vector<std::vector<bool> > &visited, std::list<Point_t> const &open_space,
-                          std::list<gridNode_t> &pathNodes);
+bool a_star_to_open_space(
+  std::vector<std::vector<bool>> const & grid, gridNode_t init, int cost,
+  std::vector<std::vector<bool>> & visited, std::list<Point_t> const & open_space,
+  std::list<gridNode_t> & pathNodes);
 
 /**
  * Convert 2D grid of bools to a list of Point_t
@@ -92,4 +93,4 @@ bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_
  * @param value_to_search points matching this value will be returned
  * @return a list of points that have the given value_to_search
  */
-std::list<Point_t> map_2_goals(std::vector<std::vector<bool> > const& grid, bool value_to_search);
+std::list<Point_t> map_2_goals(std::vector<std::vector<bool>> const & grid, bool value_to_search);
