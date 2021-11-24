@@ -143,9 +143,6 @@ std::list<gridNode_t> SpiralSTC::spiral(
         "FullCoveragePathPlanner"), "Starting footprint seems to be out of bounds!");
   }
   for (const auto init_cell : init_cells) {
-    if (init_cell.x == 14) {    RCLCPP_ERROR(
-      rclcpp::get_logger(
-        "FullCoveragePathPlanner"), "HHHHEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEERRREEEEEEEEEEE");}
     visited[init_cell.y][init_cell.x] = eNodeVisited;
     visited_copy[init_cell.y][init_cell.x] = eNodeVisited;
   }
@@ -364,9 +361,6 @@ std::list<gridNode_t> SpiralSTC::spiral(
         unsafe_visited_cells.insert(
           unsafe_visited_cells.end(), visited_cells.begin(), visited_cells.end());  // Will be cleared once a node is considered safe
         for (const auto visited_cell : visited_cells) {
-              if (visited_cell.x == 14) {    RCLCPP_ERROR(
-      rclcpp::get_logger(
-        "FullCoveragePathPlanner"), "HHHHEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEERRREEEEEEEEEEE");}
           visited[visited_cell.y][visited_cell.x] = eNodeVisited;
           visited_copy[visited_cell.y][visited_cell.x] = eNodeVisited;
         }
@@ -411,8 +405,6 @@ std::list<Point_t> SpiralSTC::spiral_stc(
 
   for (const auto path_node : path_nodes) {  // Add points to full path
     Point_t new_point = {path_node.pos.x, path_node.pos.y};
-    // TODO(Aron): Remove this??
-    // visited_counter++;
     full_path.push_back(new_point);
   }
 
@@ -429,8 +421,6 @@ std::list<Point_t> SpiralSTC::spiral_stc(
     // Remove all elements from path_nodes list except last element
     // The last point is the starting point for a new search and A* extends the path from there on
     path_nodes.erase(path_nodes.begin(), --(path_nodes.end()));
-    // visited_counter--;  // First point is already counted as visited
-    // TODO(Aron): Remove this??
 
     RCLCPP_INFO(
       rclcpp::get_logger(
@@ -523,10 +513,8 @@ std::list<Point_t> SpiralSTC::spiral_stc(
 
     goals = map_2_goals(visited, eNodeOpen);  // Retrieve remaining goal points
 
-    // TODO(Aron): dit weg??
     for (const auto path_node : path_nodes) {
       Point_t new_point = {path_node.pos.x, path_node.pos.y};
-      // visited_counter++;
       full_path.push_back(new_point);
     }
   }
@@ -560,11 +548,6 @@ bool SpiralSTC::makePlan(
   {
     RCLCPP_ERROR(rclcpp::get_logger("FullCoveragePathPlanner"), "Could not parse retrieved grid");
     return false;
-  }
-
-  std::vector<geometry_msgs::msg::Point> test = planner_grid_ros->getRobotFootprint();
-  for (auto const point : test) {
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Robot footprint : (x=%f,y=%f)", point.x, point.y);
   }
 
   planner_grid.resizeMap(
