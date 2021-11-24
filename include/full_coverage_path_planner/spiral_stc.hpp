@@ -105,7 +105,7 @@ protected:
   // Temporary for debugging or testing purposes
   int max_overlap;
   int max_overlap_forward = 0; // Maximum allowable overlapping grids between a forward menoeuvre and already visited grids
-  int max_overlap_turn = 3; // Maximum allowable overlapping grids between a turning menoeuvre and already visited grids
+  int max_overlap_turn = 2; // Maximum allowable overlapping grids between a turning menoeuvre and already visited grids
   int spiral_counter = 0; // Limit the amount of spirals planned
   std::vector<std::vector<bool>> visited_copy; // Only mark the spots covered by spirals (not A*)
 
@@ -165,8 +165,7 @@ protected:
    * @return
    */
   std::list<Point_t> spiral_stc(
-    std::vector<std::vector<bool>> const & grid, Point_t & init, double & yaw_start,
-    int & multiple_pass_counter, int & visited_counter);
+    std::vector<std::vector<bool>> const & grid, Point_t & init, double & yaw_start);
 
   /**
    * Compute the cells in a grid that lie below a convex footprint

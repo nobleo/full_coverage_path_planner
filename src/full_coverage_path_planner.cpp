@@ -185,65 +185,62 @@ void FullCoveragePathPlanner::parsePointlist2Plan(
 
 bool FullCoveragePathPlanner::parseGrid(
   nav2_costmap_2d::Costmap2D const * cpp_costmap, std::vector<std::vector<bool>> & grid,
-  double robotRadius, double toolRadius, geometry_msgs::msg::PoseStamped const & realStart,
-  Point_t & scaledStart, double & yawStart)
+  double grid_size, geometry_msgs::msg::PoseStamped const & real_start,
+  Point_t & scaled_start, double & yaw_start)
 {
-  size_t nodeRow;
-  size_t nodeColl;
-  size_t nodeSize = dmax(ceil(toolRadius / cpp_costmap->getResolution()), 1);       // Size of node in pixels/units
-  size_t robotNodeSize = dmax(ceil(robotRadius / cpp_costmap->getResolution()), 1); // RobotRadius in pixels/units
-  size_t nRows = cpp_costmap->getSizeInCellsY();
-  size_t nCols = cpp_costmap->getSizeInCellsX();
+  size_t node_row;
+  size_t node_col;
+  size_t node_size = dmax(ceil(grid_size / cpp_costmap->getResolution()), 1);       // Size of node in pixels/units
+  size_t n_rows = cpp_costmap->getSizeInCellsY();
+  size_t n_cols = cpp_costmap->getSizeInCellsX();
   unsigned char * cpp_costmap_data = cpp_costmap->getCharMap();
   RCLCPP_INFO(
     rclcpp::get_logger(
-      "FullCoveragePathPlanner"), "nRows: %lu, nCols: %lu, nodeSize: %lu", nRows, nCols, nodeSize);
+      "FullCoveragePathPlanner"), "n_rows: %lu, n_cols: %lu, node_size: %lu", n_rows, n_cols, node_size);
 
-  if (nRows == 0 || nCols == 0) {
+  if (n_rows == 0 || n_cols == 0) {
     return false;
   }
 
   // Save map origin and scaling
   cpp_costmap->mapToWorld(0, 0, grid_origin_.x, grid_origin_.y);
-  tile_size_ = nodeSize * cpp_costmap->getResolution(); // Size of a tile in meters
+  tile_size_ = node_size * cpp_costmap->getResolution(); // Size of a tile in meters
 
   // Scale starting point
-  scaledStart.x = static_cast<unsigned int>(clamp(
-      (realStart.pose.position.x - grid_origin_.x) / tile_size_, 0.0,
+  scaled_start.x = static_cast<unsigned int>(clamp(
+      (real_start.pose.position.x - grid_origin_.x) / tile_size_, 0.0,
       floor(cpp_costmap->getSizeInCellsX() / tile_size_)));
-  scaledStart.y = static_cast<unsigned int>(clamp(
-      (realStart.pose.position.y - grid_origin_.y) / tile_size_, 0.0,
+  scaled_start.y = static_cast<unsigned int>(clamp(
+      (real_start.pose.position.y - grid_origin_.y) / tile_size_, 0.0,
       floor(cpp_costmap->getSizeInCellsY() / tile_size_)));
 
   // Determine initial orientation
   tf2::Quaternion q;
-  q.setW(realStart.pose.orientation.w);
-  q.setX(realStart.pose.orientation.x);
-  q.setY(realStart.pose.orientation.y);
-  q.setZ(realStart.pose.orientation.z);
-  yawStart = q.getAngle();
+  q.setW(real_start.pose.orientation.w);
+  q.setX(real_start.pose.orientation.x);
+  q.setY(real_start.pose.orientation.y);
+  q.setZ(real_start.pose.orientation.z);
+  yaw_start = q.getAngle();
 
   // Scale grid
-  for (size_t iy = 0; iy < nRows; iy = iy + nodeSize) {
-    std::vector<bool> gridRow;
-    for (size_t ix = 0; ix < nCols; ix = ix + nodeSize) {
-      bool nodeOccupied = false;
-      for (nodeRow = 0;
-        (nodeRow < robotNodeSize) && ((iy + nodeRow) < nRows) && (nodeOccupied == false); ++nodeRow)
+  for (size_t iy = 0; iy < n_rows; iy = iy + node_size) {
+    std::vector<bool> grid_row;
+    for (size_t ix = 0; ix < n_cols; ix = ix + node_size) {
+      bool node_occupied = false;
+      for (node_row = 0; (node_row < node_size) && ((iy + node_row) < n_rows) &&
+        (node_occupied == false); ++node_row)
       {
-        for (nodeColl = 0; (nodeColl < robotNodeSize) && ((ix + nodeColl) < nCols); ++nodeColl) {
-          int index_grid = dmax(
-            (iy + nodeRow - ceil(static_cast<double>(robotNodeSize - nodeSize) / 2.0)) * nCols +
-            (ix + nodeColl - ceil(static_cast<double>(robotNodeSize - nodeSize) / 2.0)), 0);
+        for (node_col = 0; (node_col < node_size) && ((ix + node_col) < n_cols); ++node_col) {
+          int index_grid = (iy + node_row) * n_cols + (ix + node_col);
           if (cpp_costmap_data[index_grid] > COVERAGE_COST) {
-            nodeOccupied = true;
+            node_occupied = true;
             break;
           }
         }
       }
-      gridRow.push_back(nodeOccupied);
+      grid_row.push_back(node_occupied);
     }
-    grid.push_back(gridRow);
+    grid.push_back(grid_row);
   }
   return true;
 }

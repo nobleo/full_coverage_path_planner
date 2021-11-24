@@ -90,8 +90,9 @@ protected:
    * @return success
    */
   bool parseGrid(
-    nav2_costmap_2d::Costmap2D const * cpp_costmap, std::vector<std::vector<bool>> & grid, double robotRadius,
-    double toolRadius, geometry_msgs::msg::PoseStamped const & realStart, Point_t & scaledStart, double & yawStart);
+    nav2_costmap_2d::Costmap2D const * cpp_costmap, std::vector<std::vector<bool>> & grid,
+    double grid_size, geometry_msgs::msg::PoseStamped const & real_start, Point_t & scaled_start,
+    double & yaw_start);
 
   /**
    * @brief Create Quaternion from Yaw
@@ -121,7 +122,6 @@ protected:
     int visited_counter;
     int multiple_pass_counter;
     int accessible_counter;
-    double total_area_covered;
   };
   spiral_cpp_metrics_type spiral_cpp_metrics_;
 };
