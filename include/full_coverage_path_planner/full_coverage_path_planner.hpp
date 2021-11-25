@@ -84,9 +84,10 @@ protected:
    * @brief Convert ROS Occupancy grid to internal grid representation, given the size of a single tile
    * @param cpp_grid_ ROS occupancy grid representation. Cells higher that 65 are considered occupied
    * @param grid internal map representation
-   * @param tileSize size (in meters) of a cell. This can be the robot's size
-   * @param realStart Start position of the robot (in meters)
-   * @param scaledStart Start position of the robot on the grid
+   * @param grid_size size (in meters) of a cell. This can be the robot's size
+   * @param real_start Start position of the robot (in meters)
+   * @param scaled_start Start position of the robot on the grid
+   * @param yaw_start Start orientation of the robot (in radians)
    * @return success
    */
   bool parseGrid(
@@ -110,7 +111,7 @@ protected:
   nav2_util::LifecycleNode::SharedPtr node_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
   double vehicle_width_, plan_resolution_, tile_size_;
-  int division_factor_, manoeuvre_resolution_;
+  int division_factor_, manoeuvre_resolution_, max_overlap_forward_, max_overlap_turn_;
   dPoint_t grid_origin_;
   bool initialized_;
   geometry_msgs::msg::PoseStamped previous_goal_;

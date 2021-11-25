@@ -196,7 +196,8 @@ bool FullCoveragePathPlanner::parseGrid(
   unsigned char * cpp_costmap_data = cpp_costmap->getCharMap();
   RCLCPP_INFO(
     rclcpp::get_logger(
-      "FullCoveragePathPlanner"), "n_rows: %lu, n_cols: %lu, node_size: %lu", n_rows, n_cols, node_size);
+      "FullCoveragePathPlanner"), "n_rows: %lu, n_cols: %lu, node_size: %lu", n_rows, n_cols,
+    node_size);
 
   if (n_rows == 0 || n_cols == 0) {
     return false;

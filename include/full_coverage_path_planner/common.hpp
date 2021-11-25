@@ -79,13 +79,13 @@ int distanceSquared(const Point_t & p1, const Point_t & p2);
  * @param cost cost of traversing a free node
  * @param visited grid 2D grid of bools. true == visited
  * @param open_space Open space that A* need to find a path towards. Only used for the heuristic and directing search
- * @param pathNodes nodes that form the path from init to the closest point in heuristic_goals
+ * @param path_nodes nodes that form the path from init to the closest point in heuristic_goals
  * @return whether we resign from finding a path or not. true is we resign and false if we found a path
  */
 bool a_star_to_open_space(
   std::vector<std::vector<bool>> const & grid, gridNode_t init, int cost,
   std::vector<std::vector<bool>> & visited, std::list<Point_t> const & open_space,
-  std::list<gridNode_t> & pathNodes);
+  std::list<gridNode_t> & path_nodes);
 
 /**
  * Convert 2D grid of bools to a list of Point_t

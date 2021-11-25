@@ -63,6 +63,16 @@ void SpiralSTC::configure(
     declare_parameter_if_not_declared(
       node_, name_ + ".manoeuvre_resolution", rclcpp::ParameterValue(manoeuvre_resolution_default));
     node_->get_parameter(name_ + ".manoeuvre_resolution", manoeuvre_resolution_);
+    // Define maximum allowable overlapping grids between a turning manoeuvre and already visited grids
+    int max_overlap_turn_default = 2;
+    declare_parameter_if_not_declared(
+      node_, name_ + ".max_overlap_turn", rclcpp::ParameterValue(max_overlap_turn_default));
+    node_->get_parameter(name_ + ".max_overlap_turn", max_overlap_turn_);
+    // Define maximum allowable overlapping grids between a forward manoeuvre and already visited grids
+    int max_overlap_forward_default = 0;
+    declare_parameter_if_not_declared(
+      node_, name_ + ".max_overlap_forward", rclcpp::ParameterValue(max_overlap_forward_default));
+    node_->get_parameter(name_ + ".max_overlap_forward", max_overlap_forward_);
 
     initialized_ = true;
   }
@@ -131,7 +141,7 @@ std::list<gridNode_t> SpiralSTC::spiral(
   int dx = 0;
   int dy = 1;
   int dx_prev;
-  double yaw_current = yaw_start;  // This value will change later on
+  double yaw_current = yaw_start;
 
   // Mark initial footprint of the tool as visited
   std::vector<nav2_costmap_2d::MapLocation> init_cells;
@@ -218,6 +228,7 @@ std::list<gridNode_t> SpiralSTC::spiral(
         x_current, y_current, yaw_current, x_next, y_next, yaw_next);
 
       // Apply a rotation to the relative manoeuvre cells to convert from robot frame to world frame
+      int max_overlap;
       bool man_is_free = true;  // This condition might change in the loop below
       if (i == 0) {  // Transform standard relative left turn manoeuvre
         if (!transformRelativeManoeuvre(
@@ -230,7 +241,7 @@ std::list<gridNode_t> SpiralSTC::spiral(
             rclcpp::get_logger(
               "FullCoveragePathPlanner"), "  --> out of bounds, looking in other directions...");
         }
-        max_overlap = max_overlap_turn;
+        max_overlap = max_overlap_turn_;
       } else if (i == 1) {  // Transform standard relative forward manoeuvre
         if (!transformRelativeManoeuvre(
             x_current, y_current, yaw_current, vehicle_forward_rel, man_cells) ||
@@ -242,7 +253,7 @@ std::list<gridNode_t> SpiralSTC::spiral(
             rclcpp::get_logger(
               "FullCoveragePathPlanner"), "  --> out of bounds, looking in other directions...");
         }
-        max_overlap = max_overlap_forward;
+        max_overlap = max_overlap_forward_;
       } else if (i == 2) {  // Transform standard relative right turn manoeuvre
         if (!transformRelativeManoeuvre(
             x_current, y_current, yaw_current, vehicle_right_turn_rel, man_cells) ||
@@ -254,7 +265,7 @@ std::list<gridNode_t> SpiralSTC::spiral(
             rclcpp::get_logger(
               "FullCoveragePathPlanner"), "  --> out of bounds, looking in other directions...");
         }
-        max_overlap = max_overlap_turn;
+        max_overlap = max_overlap_turn_;
       }
 
       // Check the transformed manoeuvre cells of the vehicle for collisions
@@ -316,6 +327,7 @@ std::list<gridNode_t> SpiralSTC::spiral(
             }
           }
         }
+
         // Set up variables needed for the continuation of the spiralling loop
         it = --(path_nodes.end());
         std::list<gridNode_t>::iterator it_prev = --it;
@@ -410,7 +422,7 @@ std::list<Point_t> SpiralSTC::spiral_stc(
 
   while (goals.size() != 0) {
     spiral_counter++;  // Count number of spirals planned
-    if (spiral_counter == 1) {
+    if (spiral_counter == 30) {
       RCLCPP_INFO(
         rclcpp::get_logger(
           "FullCoveragePathPlanner"),
@@ -464,10 +476,7 @@ std::list<Point_t> SpiralSTC::spiral_stc(
           visit_count++;
         }
       }
-      if (!accept_a_star || visit_count > max_overlap_turn) {
-        RCLCPP_INFO(
-          rclcpp::get_logger("FullCoveragePathPlanner"),
-          "~~~ A* is not accepted, grid considered visited");
+      if (!accept_a_star || visit_count > max_overlap_turn_) {
         visited[y_n][x_n] = eNodeVisited;
         path_nodes.erase(++(path_nodes.begin()), path_nodes.end());
         accept_a_star = false;
@@ -485,12 +494,17 @@ std::list<Point_t> SpiralSTC::spiral_stc(
 
     gridNode_t last_node_a_star = path_nodes.back();  // Save the value of the final node of the A star path to compare to later
 
+    // Spiral fill from current position (added to A* transition path)
+    std::list<gridNode_t>::iterator second_to_last_node_it = --(path_nodes.end());
+    gridNode_t second_to_last_node = *(--(second_to_last_node_it));
+    yaw_start = std::atan2(
+      path_nodes.back().pos.y - second_to_last_node.pos.y,
+      path_nodes.back().pos.x - second_to_last_node.pos.x);
     RCLCPP_INFO(
       rclcpp::get_logger("FullCoveragePathPlanner"),
-      "!!!!!!!!!!!! Starting a spiral from (x=%d, y=%d, yaw=?) !!!!!!!!!!!!",
-      path_nodes.back().pos.x, path_nodes.back().pos.y);
-    // Spiral fill from current position (added to A* transition path)
-    path_nodes = spiral(grid, path_nodes, yaw_start, visited);  // It overwrites yaw_start if its not a first spiral
+      "!!!!!!!!!!!! Starting a spiral from (x=%d, y=%d, yaw=%f) !!!!!!!!!!!!",
+      path_nodes.back().pos.x, path_nodes.back().pos.y, yaw_start);
+    path_nodes = spiral(grid, path_nodes, yaw_start, visited);
 
     // Need to extract only the spiral part for visualization
     std::list<gridNode_t> path_nodes_spiral = path_nodes;  // Work with a copy so that path_nodes is not affected later
@@ -544,7 +558,8 @@ bool SpiralSTC::makePlan(
   double yaw_start;
 
   std::vector<std::vector<bool>> grid;
-  if (!parseGrid(costmap_, grid, vehicle_width_ / division_factor_, start, start_point, yaw_start))
+  if (!parseGrid(
+      costmap_, grid, vehicle_width_ / division_factor_, start, start_point, yaw_start))
   {
     RCLCPP_ERROR(rclcpp::get_logger("FullCoveragePathPlanner"), "Could not parse retrieved grid");
     return false;
@@ -597,19 +612,23 @@ bool SpiralSTC::makePlan(
   RCLCPP_INFO(
     rclcpp::get_logger(
       "FullCoveragePathPlanner"), "To be cleaned: %d out of %d cells",
-      to_be_cleaned_cells, planner_grid.getSizeInCellsX() * planner_grid.getSizeInCellsY());
+    to_be_cleaned_cells, planner_grid.getSizeInCellsX() * planner_grid.getSizeInCellsY());
   RCLCPP_INFO(
     rclcpp::get_logger(
       "FullCoveragePathPlanner"), "Total visited: %d cells",
-      spiral_cpp_metrics_.visited_counter);
+    spiral_cpp_metrics_.visited_counter);
   RCLCPP_INFO(
     rclcpp::get_logger(
       "FullCoveragePathPlanner"), "Total revisited: %d cells",
-      spiral_cpp_metrics_.multiple_pass_counter);
+    spiral_cpp_metrics_.multiple_pass_counter);
   RCLCPP_INFO(
     rclcpp::get_logger(
       "FullCoveragePathPlanner"), "Total accessible cells: %d",
     spiral_cpp_metrics_.accessible_counter);
+  RCLCPP_INFO(
+    rclcpp::get_logger(
+      "FullCoveragePathPlanner"), "Final coverage: %f percent",
+    (static_cast<double>(spiral_cpp_metrics_.accessible_counter)/to_be_cleaned_cells)*100);
   RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
   // TODO(CesarLopez): Check if global path should be calculated repetitively or just kept (also controlled by planner_frequency parameter in move_base namespace)
@@ -639,19 +658,19 @@ bool SpiralSTC::computeFootprintCells(
     nav2_costmap_2d::transformFootprint(
       x_w, y_w, yaw, planner_grid_ros->getRobotFootprint(), footprint);
   } else if (part == "tool") {
-    // TODO(Aron): This will eventually be published by the coverage tracker tool, for now hardcoded
+    // TODO(AronTiemessen): This will eventually be published by the coverage tracker tool, for now hardcoded
     std::vector<geometry_msgs::msg::Point> tool_footprint;
     geometry_msgs::msg::Point p;
-    p.x = 0.2;  // This is the real dimension according to the cad model
+    p.x = 0.2;
     p.y = 0.4;
     tool_footprint.push_back(p);
-    p.x = 0.545;  // This is the real dimension according to the cad model
+    p.x = 0.545;
     p.y = 0.4;
     tool_footprint.push_back(p);
-    p.x = 0.545;  // This is the real dimension according to the cad model
+    p.x = 0.545;
     p.y = -0.4;
     tool_footprint.push_back(p);
-    p.x = 0.2;  // This is the real dimension according to the cad model
+    p.x = 0.2;
     p.y = -0.4;
     tool_footprint.push_back(p);
     nav2_costmap_2d::transformFootprint(x_w, y_w, yaw, tool_footprint, footprint);
@@ -692,6 +711,7 @@ bool SpiralSTC::computeFootprintCells(
     RCLCPP_INFO(
       rclcpp::get_logger(
         "FullCoveragePathPlanner"), "Footprint does not consists of 3 or more points!");
+    // TODO(AronTiemessen): Here we might want to use Bresenham's algorithm
   }
   planner_grid.convexFillCells(footprint_ML, footprint_cells);
   return true;

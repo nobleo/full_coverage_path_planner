@@ -59,11 +59,11 @@ bool sort_gridNodePath_heuristic_desc(
 bool a_star_to_open_space(
   std::vector<std::vector<bool>> const & grid, gridNode_t init, int cost,
   std::vector<std::vector<bool>> & visited, std::list<Point_t> const & open_space,
-  std::list<gridNode_t> & pathNodes)
+  std::list<gridNode_t> & path_nodes)
 {
-  int dx, dy, dx_prev, nRows = grid.size(), nCols = grid[0].size();
+  int dx, dy, dx_prev, n_rows = grid.size(), n_cols = grid[0].size();
 
-  std::vector<std::vector<bool>> closed(nRows, std::vector<bool>(nCols, eNodeOpen));
+  std::vector<std::vector<bool>> closed(n_rows, std::vector<bool>(n_cols, eNodeOpen));
   // All nodes in the closest list are currently still open
 
   closed[init.pos.y][init.pos.x] = eNodeVisited;  // Of course we have visited the current/initial location
@@ -82,8 +82,8 @@ bool a_star_to_open_space(
 
     if (open1.size() == 0) {  // If there are no open paths, there's no place to go and we must resign
       // Empty end_node list and add init as only element
-      pathNodes.erase(pathNodes.begin(), --(pathNodes.end()));
-      pathNodes.push_back(init);
+      path_nodes.erase(path_nodes.begin(), --(path_nodes.end()));
+      path_nodes.push_back(init);
       return true;  // We resign, cannot find a path
     } else {
       // Sort elements from high to low (because sort_gridNodePath_heuristic_desc uses a > b)
@@ -99,10 +99,10 @@ bool a_star_to_open_space(
       // Does the path nn end in open space?
       if (visited[nn.back().pos.y][nn.back().pos.x] == eNodeOpen) {
         // If so, we found a path to open space
-        // Copy the path nn to pathNodes so we can report that path (to get to open space)
+        // Copy the path nn to path_nodes so we can report that path (to get to open space)
         std::vector<gridNode_t>::iterator iter;
         for (iter = nn.begin(); iter != nn.end(); ++iter) {
-          pathNodes.push_back((*iter));
+          path_nodes.push_back((*iter));
         }
         return false;  // We do not resign, we found a path
       } else {
@@ -129,8 +129,8 @@ bool a_star_to_open_space(
           std::cout << "A*: Look around " << i << " at p2=(" << p2 << std::endl;
           #endif
 
-          if (p2.x >= 0 && p2.x < nCols && p2.y >= 0 && p2.y < nRows) { // Bounds check, do not sep out of map
-            // If the new node (a neighbor of the end of the path nn) is open, append it to newPath ( = nn)
+          if (p2.x >= 0 && p2.x < n_cols && p2.y >= 0 && p2.y < n_rows) { // Bounds check, do not sep out of map
+            // If the new node (a neighbor of the end of the path nn) is open, append it to new_path ( = nn)
             // and add that to the open1-list of paths.
             // Because of the pop_back on open1, what happens is that the path is temporarily 'checked out',
             // modified here, and then added back (if the condition above and below holds)
@@ -140,7 +140,7 @@ bool a_star_to_open_space(
               std::cout << "A*: p2=" << p2 << " is OPEN" << std::endl;
               #endif
 
-              std::vector<gridNode_t> newPath = nn;
+              std::vector<gridNode_t> new_path = nn;
               // # heuristic  has to be designed to prefer a CCW turn
               Point_t new_point = {p2.x, p2.y};
               gridNode_t new_node =
@@ -150,17 +150,17 @@ bool a_star_to_open_space(
                 cost + nn.back().cost + distanceToClosestPoint(p2, open_space) + i,
                 // Heuristic (+i so CCW turns are cheaper)
               };
-              newPath.push_back(new_node);
+              new_path.push_back(new_node);
               closed[new_node.pos.y][new_node.pos.x] = eNodeVisited;  // New node is now used in a path and thus visited
 
               #ifdef DEBUG_PLOT
               std::cout << "A*: Marked new_node " << new_node << " as eNodeVisited (true)" <<
                 std::endl;
-              std::cout << "A*: Add path from " << newPath.front().pos << " to " <<
-                newPath.back().pos << " of length " << newPath.size() << " to open1" << std::endl;
+              std::cout << "A*: Add path from " << new_path.front().pos << " to " <<
+                new_path.back().pos << " of length " << new_path.size() << " to open1" << std::endl;
               #endif
 
-              open1.push_back(newPath);
+              open1.push_back(new_path);
             }
 
             #ifdef DEBUG_PLOT
@@ -192,10 +192,10 @@ std::list<Point_t> map_2_goals(std::vector<std::vector<bool>> const & grid, bool
 {
   std::list<Point_t> goals;
   int ix, iy;
-  int nRows = grid.size();
-  int nCols = grid[0].size();
-  for (iy = 0; iy < nRows; ++(iy)) {
-    for (ix = 0; ix < nCols; ++(ix)) {
+  int n_rows = grid.size();
+  int n_cols = grid[0].size();
+  for (iy = 0; iy < n_rows; ++(iy)) {
+    for (ix = 0; ix < n_cols; ++(ix)) {
       if (grid[iy][ix] == value_to_search) {
         Point_t p = {ix, iy};  // x, y
         goals.push_back(p);

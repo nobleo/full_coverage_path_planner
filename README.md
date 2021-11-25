@@ -138,9 +138,10 @@ For use in move_base(\_flex) as "base_global_planner"="full_coverage_path_planne
 #### Parameters
 
 * **`vehicle_width`**: vehicle width, which is used by the CPP algorithm to discretize the space together with the parameter below.
-* **`division_factor`**: division factor, which is used by the CPP algorithm to discretize the space in grids a factor smaller than the vehicle width
-* **`manoeuvre_resolution`**: manoeuvre resolution, which is the number of footprints used to compute the swept path by a manoeuvre to retreive the underlying grids
-
+* **`division_factor`**: division factor, which is used by the CPP algorithm to discretize the space in grids a factor smaller than the vehicle width.
+* **`manoeuvre_resolution`**: manoeuvre resolution, which is the number of footprints used to compute the swept path by a manoeuvre to retreive the underlying grids.
+* **`max_overlap_turn`**: max overlap turn, which is the maximum allowable overlapping grids between a turning menoeuvre and already visited grids.
+* **`max_overlap_forward`**: max overlap forward, which is the maximum allowable overlapping grids between a forward menoeuvre and already visited grids.
 ## References
 
 [1] GONZALEZ, Enrique, et al. BSA: A complete coverage algorithm. In: Proceedings of the 2005 IEEE International Conference on Robotics and Automation. IEEE, 2005. p. 2040-2044.
