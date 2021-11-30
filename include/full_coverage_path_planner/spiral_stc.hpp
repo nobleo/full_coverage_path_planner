@@ -28,6 +28,8 @@
 using namespace std::chrono_literals;
 using std::string;
 
+#define DEBUG_PLOT
+
 namespace full_coverage_path_planner
 {
 
@@ -152,6 +154,21 @@ protected:
   std::list<gridNode_t> spiral(
     std::vector<std::vector<bool>> const & grid, std::list<gridNode_t> & init, double & yaw_start,
     std::vector<std::vector<bool>> & visited);
+
+  /**
+   * Perform A* shorted path finding from init to one of the points in heuristic_goals
+   * @param grid 2D grid of bools. true == occupied/blocked/obstacle
+   * @param init start position
+   * @param cost cost of traversing a free node
+   * @param visited grid 2D grid of bools. true == visited
+   * @param open_space Open space that A* need to find a path towards. Only used for the heuristic and directing search
+   * @param path_nodes nodes that form the path from init to the closest point in heuristic_goals
+   * @return whether we resign from finding a path or not. true is we resign and false if we found a path
+   */
+  bool planAStarToOpenSpace(
+    std::vector<std::vector<bool>> const & grid, gridNode_t init, int cost,
+    std::vector<std::vector<bool>> & visited, std::list<Point_t> const & open_space,
+    std::list<gridNode_t> & path_nodes);
 
   /**
    * Perform Spiral-STC (Spanning Tree Coverage) coverage path planning.

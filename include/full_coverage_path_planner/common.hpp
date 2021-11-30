@@ -10,8 +10,6 @@
 #include <list>
 #include <vector>
 
-#define DEBUG_PLOT
-
 typedef struct
 {
   int x, y;
@@ -65,21 +63,6 @@ int distanceToClosestPoint(Point_t poi, std::list<Point_t> const & goals);
  * Calculate the distance between two points, squared
  */
 int distanceSquared(const Point_t & p1, const Point_t & p2);
-
-/**
- * Perform A* shorted path finding from init to one of the points in heuristic_goals
- * @param grid 2D grid of bools. true == occupied/blocked/obstacle
- * @param init start position
- * @param cost cost of traversing a free node
- * @param visited grid 2D grid of bools. true == visited
- * @param open_space Open space that A* need to find a path towards. Only used for the heuristic and directing search
- * @param path_nodes nodes that form the path from init to the closest point in heuristic_goals
- * @return whether we resign from finding a path or not. true is we resign and false if we found a path
- */
-bool planAStarToOpenSpace(
-  std::vector<std::vector<bool>> const & grid, gridNode_t init, int cost,
-  std::vector<std::vector<bool>> & visited, std::list<Point_t> const & open_space,
-  std::list<gridNode_t> & path_nodes);
 
 /**
  * Convert 2D grid of bools to a list of Point_t
