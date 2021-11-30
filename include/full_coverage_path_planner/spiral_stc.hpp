@@ -110,8 +110,9 @@ protected:
 
   // Relative manoeuvre footprints (in the vehicle's frame)
   std::vector<Point_t> vehicle_left_turn_rel, vehicle_forward_rel, vehicle_right_turn_rel,
-    vehicle_turn_around_left_rel, vehicle_turn_around_right_rel, tool_left_turn_rel,
-    tool_forward_rel, tool_right_turn_rel;
+    vehicle_turn_around_left_rel, vehicle_turn_around_right_rel,
+    vehicle_turn_around_left_with_step_rel, vehicle_turn_around_right_with_step_rel,
+    tool_left_turn_rel, tool_forward_rel, tool_right_turn_rel;
 
   // Local costmap objects for the planner to store the grid and manipulate footprints
   nav2_costmap_2d::Costmap2D planner_grid;
@@ -166,7 +167,7 @@ protected:
    * @return whether we resign from finding a path or not. true is we resign and false if we found a path
    */
   bool planAStarToOpenSpace(
-    std::vector<std::vector<bool>> const & grid, gridNode_t init, int cost,
+    std::vector<std::vector<bool>> const & grid, gridNode_t init, double & yaw_init, int cost,
     std::vector<std::vector<bool>> & visited, std::list<Point_t> const & open_space,
     std::list<gridNode_t> & path_nodes);
 
