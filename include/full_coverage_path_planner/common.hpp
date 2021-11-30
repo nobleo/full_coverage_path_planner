@@ -10,6 +10,8 @@
 #include <list>
 #include <vector>
 
+#define DEBUG_PLOT
+
 typedef struct
 {
   int x, y;
@@ -24,16 +26,8 @@ inline std::ostream & operator<<(std::ostream & os, Point_t & p)
 typedef struct
 {
   Point_t pos;
-
-  /** Path cost
-   * cost of the path from the start node to gridNode_t
-   */
-  int cost;
-
-  /** Heuristic cost
-   * cost of the cheapest path from this gridNode_t to the goal
-   */
-  int he;
+  int cost;  // Path cost: cost of the path from the start node to gridNode_t
+  int he;  // Heuristic cost: cost of the cheapest path from this gridNode_t to the goal
 }
 gridNode_t;
 
@@ -82,7 +76,7 @@ int distanceSquared(const Point_t & p1, const Point_t & p2);
  * @param path_nodes nodes that form the path from init to the closest point in heuristic_goals
  * @return whether we resign from finding a path or not. true is we resign and false if we found a path
  */
-bool a_star_to_open_space(
+bool planAStarToOpenSpace(
   std::vector<std::vector<bool>> const & grid, gridNode_t init, int cost,
   std::vector<std::vector<bool>> & visited, std::list<Point_t> const & open_space,
   std::list<gridNode_t> & path_nodes);
@@ -93,4 +87,4 @@ bool a_star_to_open_space(
  * @param value_to_search points matching this value will be returned
  * @return a list of points that have the given value_to_search
  */
-std::list<Point_t> map_2_goals(std::vector<std::vector<bool>> const & grid, bool value_to_search);
+std::list<Point_t> retrieveGoalsFromMap(std::vector<std::vector<bool>> const & grid, bool value_to_search);

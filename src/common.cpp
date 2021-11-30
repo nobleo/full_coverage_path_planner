@@ -9,6 +9,8 @@
 
 #include <full_coverage_path_planner/common.hpp>
 
+#define DEBUG_PLOT
+
 int distanceToClosestPoint(Point_t poi, std::list<Point_t> const & goals)
 {
   // Return minimum distance from goals-list
@@ -56,7 +58,7 @@ bool sort_gridNodePath_heuristic_desc(
   return first.back().he > second.back().he;
 }
 
-bool a_star_to_open_space(
+bool planAStarToOpenSpace(
   std::vector<std::vector<bool>> const & grid, gridNode_t init, int cost,
   std::vector<std::vector<bool>> & visited, std::list<Point_t> const & open_space,
   std::list<gridNode_t> & path_nodes)
@@ -64,17 +66,17 @@ bool a_star_to_open_space(
   int dx, dy, dx_prev, n_rows = grid.size(), n_cols = grid[0].size();
 
   std::vector<std::vector<bool>> closed(n_rows, std::vector<bool>(n_cols, eNodeOpen));
-  // All nodes in the closest list are currently still open
+  // All nodes in the closed list are currently still open
 
   closed[init.pos.y][init.pos.x] = eNodeVisited;  // Of course we have visited the current/initial location
 
   #ifdef DEBUG_PLOT
-  std::cout << "A*: marked init " << init << " as eNodeVisited (true)" << std::endl;
+  std::cout << "A*: Marked init " << init << " as eNodeVisited (true)" << std::endl;
   #endif
 
   std::vector<std::vector<gridNode_t>> open1(1, std::vector<gridNode_t>(1, init));  // open1 is a *vector* of paths
 
-  while (true) {
+  while (true) { // Keep searching until either a path is found or no path can be found
 
     #ifdef DEBUG_PLOT
     std::cout << "A*: open1.size() = " << open1.size() << std::endl;
@@ -87,12 +89,12 @@ bool a_star_to_open_space(
       return true;  // We resign, cannot find a path
     } else {
       // Sort elements from high to low (because sort_gridNodePath_heuristic_desc uses a > b)
-      std::sort(open1.begin(), open1.end(), sort_gridNodePath_heuristic_desc);
-      std::vector<gridNode_t> nn = open1.back();  // Get the *path* with the lowest heuristic cost
+      std::sort(open1.begin(), open1.end(), sort_gridNodePath_heuristic_desc);  // Sort bases on heuristic costs
+      std::vector<gridNode_t> nn = open1.back();  // Get the *path* with currently the lowest heuristic cost
       open1.pop_back();  // The last element is no longer open because we use it here, so remove from open list
 
       #ifdef DEBUG_PLOT
-      std::cout << "A*: Check out path from" << nn.front().pos << " to " << nn.back().pos <<
+      std::cout << "A*: Check out path from " << nn.front().pos << " to " << nn.back().pos <<
         " of length " << nn.size() << std::endl;
       #endif
 
@@ -121,15 +123,15 @@ bool a_star_to_open_space(
           dy = 1;
         }
 
-        // For all nodes surrounding the end of the end of the path nn
+        // For all nodes surrounding the end of the path nn
         for (int i = 0; i < 4; ++i) {
           Point_t p2 = {nn.back().pos.x + dx, nn.back().pos.y + dy};
 
           #ifdef DEBUG_PLOT
-          std::cout << "A*: Look around " << i << " at p2=(" << p2 << std::endl;
+          std::cout << "A*: Look around in direction " << i << " at p2=" << p2 << std::endl;
           #endif
 
-          if (p2.x >= 0 && p2.x < n_cols && p2.y >= 0 && p2.y < n_rows) { // Bounds check, do not sep out of map
+          if (p2.x >= 0 && p2.x < n_cols && p2.y >= 0 && p2.y < n_rows) { // Bounds check, do not step out of map
             // If the new node (a neighbor of the end of the path nn) is open, append it to new_path ( = nn)
             // and add that to the open1-list of paths.
             // Because of the pop_back on open1, what happens is that the path is temporarily 'checked out',
@@ -141,14 +143,13 @@ bool a_star_to_open_space(
               #endif
 
               std::vector<gridNode_t> new_path = nn;
-              // # heuristic  has to be designed to prefer a CCW turn
+              // The heuristic has to be designed to prefer a CCW (counter-clockwise) turn
               Point_t new_point = {p2.x, p2.y};
               gridNode_t new_node =
               {
-                new_point,                                                                // Point: x,y
-                cost + nn.back().cost,                                                    // Cost
-                cost + nn.back().cost + distanceToClosestPoint(p2, open_space) + i,
-                // Heuristic (+i so CCW turns are cheaper)
+                new_point,  // Point: x, y
+                cost + nn.back().cost,  // Cost
+                cost + nn.back().cost + distanceToClosestPoint(p2, open_space) + i  // Heuristic (+i so CCW turns are cheaper)
               };
               new_path.push_back(new_node);
               closed[new_node.pos.y][new_node.pos.x] = eNodeVisited;  // New node is now used in a path and thus visited
@@ -188,7 +189,7 @@ bool a_star_to_open_space(
   }
 }
 
-std::list<Point_t> map_2_goals(std::vector<std::vector<bool>> const & grid, bool value_to_search)
+std::list<Point_t> retrieveGoalsFromMap(std::vector<std::vector<bool>> const & grid, bool value_to_search)
 {
   std::list<Point_t> goals;
   int ix, iy;

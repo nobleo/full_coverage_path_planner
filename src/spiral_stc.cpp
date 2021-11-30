@@ -413,7 +413,7 @@ std::list<Point_t> SpiralSTC::spiral_stc(
 
   visualizeSpiral(path_nodes, "first_spiral", 0.2, 0.5, 0.0, 0.6, 0.0);
 
-  std::list<Point_t> goals = map_2_goals(visited, eNodeOpen);  // Retrieve remaining goal points
+  std::list<Point_t> goals = retrieveGoalsFromMap(visited, eNodeOpen);  // Retrieve remaining goal points
 
   for (const auto path_node : path_nodes) {  // Add points to full path
     Point_t new_point = {path_node.pos.x, path_node.pos.y};
@@ -422,7 +422,7 @@ std::list<Point_t> SpiralSTC::spiral_stc(
 
   while (goals.size() != 0) {
     spiral_counter++;  // Count number of spirals planned
-    if (spiral_counter == 30) {
+    if (spiral_counter == 2) {
       RCLCPP_INFO(
         rclcpp::get_logger(
           "FullCoveragePathPlanner"),
@@ -443,7 +443,7 @@ std::list<Point_t> SpiralSTC::spiral_stc(
     bool accept_a_star = false;
     bool resign;
     while (!accept_a_star) {
-      resign = a_star_to_open_space(grid, path_nodes.back(), 1, visited, goals, path_nodes);
+      resign = planAStarToOpenSpace(grid, path_nodes.back(), 1, visited, goals, path_nodes);
       if (resign) {
         break;
       }
@@ -525,7 +525,7 @@ std::list<Point_t> SpiralSTC::spiral_stc(
         path_nodes_spiral, "spiral" + std::to_string(goals.size() + 1), 0.2, 0.5, 0.0, 0.6, 0.0);
     }
 
-    goals = map_2_goals(visited, eNodeOpen);  // Retrieve remaining goal points
+    goals = retrieveGoalsFromMap(visited, eNodeOpen);  // Retrieve remaining goal points
 
     for (const auto path_node : path_nodes) {
       Point_t new_point = {path_node.pos.x, path_node.pos.y};
