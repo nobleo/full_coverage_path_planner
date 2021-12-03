@@ -279,7 +279,7 @@ std::list<gridNode_t> SpiralSTC::spiral(
             "FullCoveragePathPlanner"), "  --> causing a collision, looking in other directions");
       }
 
-      // Merely for debugging purposes
+      // For debugging purposes
       if (spiral_has_safe_node) {
         gridNode_t safe_node = *(it_safe_node);
         RCLCPP_INFO(
@@ -288,59 +288,87 @@ std::list<gridNode_t> SpiralSTC::spiral(
           safe_node.pos.x, safe_node.pos.y);
       }
 
-      if (collision_manoeuvres == 3 && spiral_has_safe_node) {  // Meaning all possible manoeuvres would result in a collision
-        RCLCPP_INFO(
-          rclcpp::get_logger(
-            "FullCoveragePathPlanner"),
-          "!!!!!!!!!!!! All 3 directions lead to a collision !!!!!!!!!!!!");
-        std::list<gridNode_t>::iterator it_start_unsafe_path = ++(it_safe_node);
-        RCLCPP_INFO(
-          rclcpp::get_logger(
-            "FullCoveragePathPlanner"),
-          "  --> length before removing unsafe nodes: %lu", path_nodes.size());
-        path_nodes.erase(it_start_unsafe_path, path_nodes.end());
-        RCLCPP_INFO(
-          rclcpp::get_logger(
-            "FullCoveragePathPlanner"),
-          "  --> length after removing unsafe nodes: %lu", path_nodes.size());
+      // TODO(AronTiemessen): Need to be able to restore when no safe node is found, just start A* again or something..
+      if (collision_manoeuvres == 3) {  // Meaning all possible manoeuvres would result in a collision
+        if (spiral_has_safe_node) {
+          RCLCPP_INFO(
+            rclcpp::get_logger(
+              "FullCoveragePathPlanner"),
+            "!!!!!!!!!!!! All 3 directions lead to a collision !!!!!!!!!!!!");
+          std::list<gridNode_t>::iterator it_start_unsafe_path = ++(it_safe_node);
+          RCLCPP_INFO(
+            rclcpp::get_logger(
+              "FullCoveragePathPlanner"),
+            "  --> length before removing unsafe nodes: %lu", path_nodes.size());
+          path_nodes.erase(it_start_unsafe_path, path_nodes.end());
+          RCLCPP_INFO(
+            rclcpp::get_logger(
+              "FullCoveragePathPlanner"),
+            "  --> length after removing unsafe nodes: %lu", path_nodes.size());
 
-        // Unmark the visited cells belonging to the removed nodes
-        for (const auto unsafe_visited_cell : unsafe_visited_cells) {
-          visited[unsafe_visited_cell.y][unsafe_visited_cell.x] = eNodeOpen;
-          visited_copy[unsafe_visited_cell.y][unsafe_visited_cell.x] = eNodeOpen;
-        }
+          // Unmark the visited cells belonging to the removed nodes
+          for (const auto unsafe_visited_cell : unsafe_visited_cells) {
+            visited[unsafe_visited_cell.y][unsafe_visited_cell.x] = eNodeOpen;
+            visited_copy[unsafe_visited_cell.y][unsafe_visited_cell.x] = eNodeOpen;
+          }
 
-        // Restore footprints of some of the final nodes in the remaining path, as they were possibly affected by the above operation
-        for (int i = 0; i < division_factor_; i++) {
-          if (static_cast<size_t>(i) < path_nodes.size()) {
-            std::list<gridNode_t>::iterator it = --(path_nodes.end());
-            std::advance(it, -i);
-            gridNode_t this_node = *(it);
-            std::advance(it, -1);
-            gridNode_t node_before = *(it);
-            double yaw = std::atan2(
-              this_node.pos.y - node_before.pos.y,
-              this_node.pos.x - node_before.pos.x);
-            std::vector<nav2_costmap_2d::MapLocation> cells;
-            computeFootprintCells(this_node.pos.x, this_node.pos.y, yaw, "tool", cells);
-            for (const auto cell : cells) {
-              visited[cell.y][cell.x] = eNodeVisited;
-              visited_copy[cell.y][cell.x] = eNodeVisited;
+          // Restore footprints of some of the final nodes in the remaining path, as they were possibly affected by the above operation
+          for (int i = 0; i < division_factor_; i++) {
+            if (static_cast<size_t>(i) < path_nodes.size()) {
+              std::list<gridNode_t>::iterator it = --(path_nodes.end());
+              std::advance(it, -i);
+              gridNode_t this_node = *(it);
+              std::advance(it, -1);
+              gridNode_t node_before = *(it);
+              double yaw = std::atan2(
+                this_node.pos.y - node_before.pos.y,
+                this_node.pos.x - node_before.pos.x);
+              std::vector<nav2_costmap_2d::MapLocation> cells;
+              computeFootprintCells(this_node.pos.x, this_node.pos.y, yaw, "tool", cells);
+              for (const auto cell : cells) {
+                visited[cell.y][cell.x] = eNodeVisited;
+                visited_copy[cell.y][cell.x] = eNodeVisited;
+              }
             }
           }
-        }
 
-        // Set up variables needed for the continuation of the spiralling loop
-        it = --(path_nodes.end());
-        std::list<gridNode_t>::iterator it_prev = --it;
-        prev = *(it_prev);
-        restored = true;
-        done = false;
-        RCLCPP_INFO(
+          // Set up variables needed for the continuation of the spiralling loop
+          it = --(path_nodes.end());
+          std::list<gridNode_t>::iterator it_prev = --it;
+          prev = *(it_prev);
+          restored = true;
+          done = false;
+          RCLCPP_INFO(
+            rclcpp::get_logger(
+              "FullCoveragePathPlanner"),
+            "!!!!!!!!!!!! Restored to the most recent safe node !!!!!!!!!!!!");
+          break;
+        } else {
+          RCLCPP_INFO(
           rclcpp::get_logger(
-            "FullCoveragePathPlanner"),
-          "!!!!!!!!!!!! Restored to the most recent safe node !!!!!!!!!!!!");
-        break;
+            "FullCoveragePathPlanner"), "SPIRAL DOES NOT HAVE SAFE NODE BUT NEEDS TO BE RESTORED");
+
+                      // Unmark the visited cells belonging to the removed nodes
+          for (const auto unsafe_visited_cell : unsafe_visited_cells) {
+            visited[unsafe_visited_cell.y][unsafe_visited_cell.x] = eNodeOpen;
+            visited_copy[unsafe_visited_cell.y][unsafe_visited_cell.x] = eNodeOpen;
+          }
+
+                    path_nodes.erase(++(++path_nodes.begin()), path_nodes.end());
+
+                              // Set up variables needed for the continuation of the spiralling loop
+          it = --(path_nodes.end());
+          std::list<gridNode_t>::iterator it_prev = --it;
+          prev = *(it_prev);
+          restored = true;
+          done = true;
+          RCLCPP_INFO(
+            rclcpp::get_logger(
+              "FullCoveragePathPlanner"),
+            "!!!!!!!!!!!! Restored to start of the spiral, no safe nodes in there... !!!!!!!!!!!!");
+          break;
+
+        }
       }
 
       // Check the manoeuvre cells of the tool for overlap
@@ -414,7 +442,6 @@ bool SpiralSTC::planAStarToOpenSpace(
 
   #ifdef DEBUG_PLOT
   RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: Marked init gridNode_t((%d, %d), %d, %d) as eNodeVisited (true)", init.pos.x, init.pos.y, init.cost, init.he);
-  // std::cout << "A*: Marked init " << init << " as eNodeVisited (true)" << std::endl;
   #endif
 
   std::vector<std::vector<gridNode_t>> open1(1, std::vector<gridNode_t>(1, init));  // open1 is a *vector* of paths
@@ -422,7 +449,6 @@ bool SpiralSTC::planAStarToOpenSpace(
   while (true) { // Keep searching until either a path is found or no path can be found
 
     #ifdef DEBUG_PLOT
-    // std::cout << "A*: open1.size() = " << open1.size() << std::endl;
     RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: open1.size() = %lu", open1.size());
     #endif
 
@@ -438,8 +464,6 @@ bool SpiralSTC::planAStarToOpenSpace(
       open1.pop_back();  // The last element is no longer open because we use it here, so remove from open list
 
       #ifdef DEBUG_PLOT
-      // std::cout << "A*: Check out path from " << nn.front().pos << " to " << nn.back().pos <<
-      //   " of length " << nn.size() << std::endl;
       RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: Check out path from (%d, %d) to (%d, %d) of length %lu", nn.front().pos.x, nn.front().pos.y, nn.back().pos.x, nn.back().pos.y, nn.size());
       #endif
 
@@ -481,7 +505,6 @@ bool SpiralSTC::planAStarToOpenSpace(
           Point_t p2 = {nn.back().pos.x + dx, nn.back().pos.y + dy}; // TODO(AronTiemessen): use more descriptive names and fix x_current x_next situation
 
           #ifdef DEBUG_PLOT
-          // std::cout << "A*: Look around in direction " << i << " at p2=" << p2 << std::endl;
           RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: Look around in direction %d at p2=(%d, %d)", i, p2.x, p2.y);
           #endif
 
@@ -505,65 +528,56 @@ bool SpiralSTC::planAStarToOpenSpace(
               break;
             }
           } else if (i == 3) {
-            if(!transformRelativeManoeuvre(
-                x_current, y_current, yaw_current, vehicle_turn_around_left_with_step_rel,
-                man_cells))
-            {
+            std::vector<nav2_costmap_2d::MapLocation> man_cells_left, man_cells_right;
+            bool turn_around_left_possible, turn_around_right_possible;
+            turn_around_left_possible = transformRelativeManoeuvre(x_current, y_current,
+              yaw_current, vehicle_turn_around_left_with_step_rel, man_cells_left);
+            turn_around_right_possible = transformRelativeManoeuvre(x_current, y_current,
+              yaw_current, vehicle_turn_around_right_with_step_rel, man_cells_right);
+            if(!turn_around_left_possible && !turn_around_right_possible) {
               break;
-            } //TODO(AronTiemessen): add the possibility of turning around right also
+            } else if (turn_around_left_possible) {
+              man_cells = man_cells_left;
+            } else if (turn_around_right_possible) {
+              man_cells = man_cells_right;
+            }
           }
 
-          // if (p2.x >= 0 && p2.x < n_cols && p2.y >= 0 && p2.y < n_rows) { // Bounds check, do not step out of map // TODO(AronTiemessen): not necessary, checked in transformRelativeManoeuvre()
-            // If the new node (a neighbor of the end of the path nn) is open, append it to new_path ( = nn)
-            // and add that to the open1-list of paths.
-            // Because of the pop_back on open1, what happens is that the path is temporarily 'checked out',
-            // modified here, and then added back (if the condition above and below holds)
-            if (closed[p2.y][p2.x] == eNodeOpen && checkManoeuvreCollision(man_cells, grid)) {
-
-              #ifdef DEBUG_PLOT
-              // std::cout << "A*: p2=" << p2 << " is OPEN" << std::endl;
-              RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: p2=(%d, %d) is OPEN", p2.x, p2.y);
-              #endif
-
-              std::vector<gridNode_t> new_path = nn;
-              // The heuristic has to be designed to prefer a CCW (counter-clockwise) turn
-              Point_t new_point = {p2.x, p2.y};
-              gridNode_t new_node =
-              {
-                new_point,  // Point: x, y
-                cost + nn.back().cost,  // Cost
-                cost + nn.back().cost + distanceToClosestPoint(p2, open_space) + i  // Heuristic (+i so CCW turns are cheaper)
-              };
-              new_path.push_back(new_node);
-              closed[new_node.pos.y][new_node.pos.x] = eNodeVisited;  // New node is now used in a path and thus visited
-
-              #ifdef DEBUG_PLOT
-              // std::cout << "A*: Marked new_node " << new_node << " as eNodeVisited (true)" <<
-              //   std::endl;
-              RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: Marked new_node gridNode_t((%d, %d), %d, %d) as eNodeVisited (true)", new_node.pos.x, new_node.pos.y, new_node.cost, new_node.he);
-              // std::cout << "A*: Add path from " << new_path.front().pos << " to " <<
-              //   new_path.back().pos << " of length " << new_path.size() << " to open1" << std::endl;
-              RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: Add path from (%d, %d) to (%d, %d) of length %lu to open1", new_path.front().pos.x, new_path.front().pos.y, new_path.back().pos.x, new_path.back().pos.y, new_path.size());
-              #endif
-
-              open1.push_back(new_path);
-            }
+          // If the new node (a neighbor of the end of the path nn) is open, append it to new_path ( = nn)
+          // and add that to the open1-list of paths.
+          // Because of the pop_back on open1, what happens is that the path is temporarily 'checked out',
+          // modified here, and then added back (if the condition above and below holds)
+          if (closed[p2.y][p2.x] == eNodeOpen && checkManoeuvreCollision(man_cells, grid)) {
 
             #ifdef DEBUG_PLOT
-            else {
-              // std::cout << "A*: p2=" << p2 << " is not open: "
-                // "closed[" << p2.y << "][" << p2.x << "]=" << closed[p2.y][p2.x] << ", "
-                // "grid[" << p2.y << "][" << p2.x << "]=" << grid[p2.y][p2.x] << std::endl;
-              RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: p2=(%d, %d) is not open: closed or collision", p2.x, p2.y);
-            }
+            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: p2=(%d, %d) is OPEN", p2.x, p2.y);
             #endif
-          // }
 
-          // #ifdef DEBUG_PLOT
-          // else {
-          //   std::cout << "A*: p2=(" << p2.x << ", " << p2.y << ") is out of bounds" << std::endl;
-          // }
-          // #endif
+            std::vector<gridNode_t> new_path = nn;
+            // The heuristic has to be designed to prefer a CCW (counter-clockwise) turn
+            Point_t new_point = {p2.x, p2.y};
+            gridNode_t new_node =
+            {
+              new_point,  // Point: x, y
+              cost + nn.back().cost,  // Cost
+              cost + nn.back().cost + distanceToClosestPoint(p2, open_space) + i  // Heuristic (+i so CCW turns are cheaper)
+            };
+            new_path.push_back(new_node);
+            closed[new_node.pos.y][new_node.pos.x] = eNodeVisited;  // New node is now used in a path and thus visited
+
+            #ifdef DEBUG_PLOT
+            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: Marked new_node gridNode_t((%d, %d), %d, %d) as eNodeVisited (true)", new_node.pos.x, new_node.pos.y, new_node.cost, new_node.he);
+            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: Add path from (%d, %d) to (%d, %d) of length %lu to open1", new_path.front().pos.x, new_path.front().pos.y, new_path.back().pos.x, new_path.back().pos.y, new_path.size());
+            #endif
+
+            open1.push_back(new_path);
+          }
+
+          #ifdef DEBUG_PLOT
+          else {
+            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: p2=(%d, %d) is not open: closed or collision", p2.x, p2.y);
+          }
+          #endif
 
           // Cycle around to next neighbor, CCW
           dx_prev = dx;

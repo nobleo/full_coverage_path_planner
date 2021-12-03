@@ -16,11 +16,6 @@ typedef struct
 }
 Point_t;
 
-inline std::ostream & operator<<(std::ostream & os, Point_t & p)
-{
-  return os << "(" << p.x << ", " << p.y << ")";
-}
-
 typedef struct
 {
   Point_t pos;
@@ -29,21 +24,11 @@ typedef struct
 }
 gridNode_t;
 
-inline std::ostream & operator<<(std::ostream & os, gridNode_t & g)
-{
-  return os << "gridNode_t(" << g.cost << ", " << g.he << ", " << g.pos << ")";
-}
-
 typedef struct
 {
   double x, y;
 }
 dPoint_t;
-
-inline std::ostream & operator<<(std::ostream & os, dPoint_t & p)
-{
-  return os << "(" << p.x << ", " << p.y << ")";
-}
 
 enum
 {
