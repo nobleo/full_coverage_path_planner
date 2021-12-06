@@ -52,7 +52,7 @@ int distanceSquared(const Point_t & p1, const Point_t & p2);
 /**
  * Convert 2D grid of bools to a list of Point_t
  * @param grid 2D grid representing a map
- * @param value_to_search points matching this value will be returned
- * @return a list of points that have the given value_to_search
+ * @param value_to_search Points matching this value will be returned
+ * @return List of points that have the given value_to_search
  */
 std::list<Point_t> retrieveGoalsFromMap(std::vector<std::vector<bool>> const & grid, bool value_to_search);

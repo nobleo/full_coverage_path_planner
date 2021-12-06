@@ -28,7 +28,7 @@
 using namespace std::chrono_literals;
 using std::string;
 
-#define DEBUG_PLOT
+// #define DEBUG_PLOT
 
 namespace full_coverage_path_planner
 {
@@ -38,12 +38,12 @@ class SpiralSTC : public nav2_core::GlobalPlanner,
 {
 public:
   /**
-   * @brief constructor
+   * @brief Constructor
    */
   SpiralSTC();
 
   /**
-   * @brief destructor
+   * @brief Destructor
    */
   ~SpiralSTC();
 
@@ -123,7 +123,8 @@ protected:
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> spirals_pub;
 
   // Enumeration of possible rotate directions of a manoeuvre
-  // When eAnyDirection is used, the shortest rotation is preferred. If both directions are equal in length, counter-clockwise is the default
+  // When eAnyDirection is used, the shortest rotation is preferred.
+  // If both directions are equal in length, counter-clockwise is the default
   enum eRotateDirection {eClockwise, eAnyDirection, eCounterClockwise};
 
   /**
@@ -138,9 +139,9 @@ protected:
     std::vector<geometry_msgs::msg::PoseStamped> & plan);
 
   /**
-   * @brief  Initialization function for the FullCoveragePathPlanner object
-   * @param  name The name of this planner
-   * @param  costmap A pointer to the ROS wrapper of the costmap to use for planning
+   * @brief Initialization function for the FullCoveragePathPlanner object
+   * @param name The name of this planner
+   * @param costmap A pointer to the ROS wrapper of the costmap to use for planning
    */
   void initialize(std::string name, nav2_costmap_2d::Costmap2DROS * costmap_ros);
 

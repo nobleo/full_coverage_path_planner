@@ -11,10 +11,9 @@
 
 int distanceToClosestPoint(Point_t poi, std::list<Point_t> const & goals)
 {
-  // Return minimum distance from goals-list
   int min_dist = INT_MAX;
   std::list<Point_t>::const_iterator it;
-  for (it = goals.begin(); it != goals.end(); ++it) {
+  for (it = goals.begin(); it != goals.end(); it++) {
     int cur_dist = distanceSquared((*it), poi);
     if (cur_dist < min_dist) {
       min_dist = cur_dist;
@@ -49,13 +48,11 @@ int distanceSquared(const Point_t & p1, const Point_t & p2)
 std::list<Point_t> retrieveGoalsFromMap(std::vector<std::vector<bool>> const & grid, bool value_to_search)
 {
   std::list<Point_t> goals;
-  int ix, iy;
-  int n_rows = grid.size();
-  int n_cols = grid[0].size();
-  for (iy = 0; iy < n_rows; ++(iy)) {
-    for (ix = 0; ix < n_cols; ++(ix)) {
+  int ix, iy, n_rows = grid.size(), n_cols = grid[0].size();
+  for (iy = 0; iy < n_rows; iy++) {
+    for (ix = 0; ix < n_cols; ix++) {
       if (grid[iy][ix] == value_to_search) {
-        Point_t p = {ix, iy};  // x, y
+        Point_t p = {ix, iy};
         goals.push_back(p);
       }
     }

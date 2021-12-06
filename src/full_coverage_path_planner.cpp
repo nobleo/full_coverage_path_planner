@@ -46,7 +46,7 @@ void FullCoveragePathPlanner::publishPlan(const std::vector<geometry_msgs::msg::
     return;
   }
 
-  // create a message for the plan
+  //  Create a message for the plan
   nav_msgs::msg::Path gui_path;
   gui_path.header.frame_id = path[0].header.frame_id;
   gui_path.header.stamp = path[0].header.stamp;
@@ -82,7 +82,7 @@ void FullCoveragePathPlanner::parsePointlist2Plan(
     new_goal.pose.orientation = createQuaternionMsgFromYaw(0);
     plan.push_back(new_goal);
   } else {
-    for (it = goalpoints.begin(); it != goalpoints.end(); ++it) {
+    for (it = goalpoints.begin(); it != goalpoints.end(); it++) {
       it_next = it;
       it_next++;
       it_prev = it;

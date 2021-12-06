@@ -36,7 +36,6 @@ using std::string;
 #define clamp(a, lower, upper) dmax(dmin(a, upper), lower)
 #endif
 
-
 namespace full_coverage_path_planner
 {
 
@@ -53,28 +52,28 @@ class FullCoveragePathPlanner
 {
 public:
   /**
-   * @brief  Default constructor for the NavFnROS object
+   * @brief Default constructor for the NavFnROS object
    */
   FullCoveragePathPlanner();
   // FullCoveragePathPlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
-
-  /**
-   * @brief  Publish a path for visualization purposes
-   */
-  void publishPlan(const std::vector<geometry_msgs::msg::PoseStamped> & path);
 
   ~FullCoveragePathPlanner()
   {
   }
 
+  /**
+   * @brief Publish a path for visualization purposes
+   */
+  void publishPlan(const std::vector<geometry_msgs::msg::PoseStamped> & path);
+
   static const unsigned char COVERAGE_COST = 65;  // Cost for checking coverage. Perhaps define this in coverage costmap plugin?
 
 protected:
   /**
-   * @brief Convert internal representation of a to a ROS path
+   * @brief Convert internal representation of a path to a ROS path
    * @param start Start pose of robot
    * @param goalpoints Goal points from Spiral Algorithm
-   * @param plan  Output plan variable
+   * @param plan Output plan variable
    */
   void parsePointlist2Plan(
     const geometry_msgs::msg::PoseStamped & start, std::list<Point_t> const & goalpoints,
@@ -83,12 +82,12 @@ protected:
   /**
    * @brief Convert ROS Occupancy grid to internal grid representation, given the size of a single tile
    * @param cpp_grid_ ROS occupancy grid representation. Cells higher that 65 are considered occupied
-   * @param grid internal map representation
-   * @param grid_size size (in meters) of a cell. This can be the robot's size
+   * @param grid Internal map representation
+   * @param grid_size Size (in meters) of a cell. This can be the robot's size
    * @param real_start Start position of the robot (in meters)
    * @param scaled_start Start position of the robot on the grid
    * @param yaw_start Start orientation of the robot (in radians)
-   * @return success
+   * @return If parsing the grid has succeeded, return true, otherwise false
    */
   bool parseGrid(
     nav2_costmap_2d::Costmap2D const * cpp_costmap, std::vector<std::vector<bool>> & grid,
@@ -97,7 +96,7 @@ protected:
 
   /**
    * @brief Create Quaternion from Yaw
-   * @param yaw orientation
+   * @param yaw Orientation
    * @return Quaternion with desired yaw orientation
    */
 
