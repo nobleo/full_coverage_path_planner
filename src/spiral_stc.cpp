@@ -886,16 +886,16 @@ bool SpiralSTC::computeFootprintCells(
     // TODO(AronTiemessen): This will eventually be published by the coverage plugin, for now hardcoded
     std::vector<geometry_msgs::msg::Point> tool_footprint;
     geometry_msgs::msg::Point p;
-    p.x = 0.2;
+    p.x = 0.0;
     p.y = 0.4;
     tool_footprint.push_back(p);
-    p.x = 0.545;
+    p.x = 0.55;
     p.y = 0.4;
     tool_footprint.push_back(p);
-    p.x = 0.545;
+    p.x = 0.55;
     p.y = -0.4;
     tool_footprint.push_back(p);
-    p.x = 0.2;
+    p.x = 0.0;
     p.y = -0.4;
     tool_footprint.push_back(p);
     nav2_costmap_2d::transformFootprint(x_w, y_w, yaw, tool_footprint, footprint);
