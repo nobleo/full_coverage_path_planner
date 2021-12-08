@@ -608,7 +608,8 @@ std::list<Point_t> SpiralSTC::spiral_stc(
 
   std::vector<std::vector<bool>> visited;
   visited = grid;
-  visited_copy.resize(visited[0].size(), std::vector<bool>(visited.size()));  // TODO(AronTiemessen): Remove eventually, temporarely for debugging...
+  visited_copy = visited;
+
   int init_x = init.x;
   int init_y = init.y;
   Point_t new_point = {init_x, init_y};
@@ -1159,7 +1160,7 @@ void SpiralSTC::visualizeGridlines()
 
   geometry_msgs::msg::Point p;
 
-  for (uint32_t i = 0; i < costmap_->getSizeInMetersX() / tile_size_; i++) {
+  for (uint32_t i = 0; i < costmap_->getSizeInMetersY() / tile_size_; i++) {
     p.x = (grid_origin_.x);
     p.y = (grid_origin_.y) + i * tile_size_;
     p.z = 0.0;
@@ -1168,7 +1169,7 @@ void SpiralSTC::visualizeGridlines()
     grid_lines.points.push_back(p);
   }
 
-  for (uint32_t i = 0; i < costmap_->getSizeInMetersY() / tile_size_; i++) {
+  for (uint32_t i = 0; i < costmap_->getSizeInMetersX() / tile_size_; i++) {
     p.x = (grid_origin_.x) + i * tile_size_;
     p.y = (grid_origin_.y);
     p.z = 0.0;
