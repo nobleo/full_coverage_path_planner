@@ -705,6 +705,29 @@ std::list<Point_t> SpiralSTC::spiral_stc(
       break;
     }
 
+    // Mark cells covered by A* path as visited
+    //TODO (AronTiemessen): Currently done using static footprints, convert to manoeuvres
+    for (std::list<gridNode_t>::iterator it = path_nodes.begin(); it != path_nodes.end(); ++it){
+      int dx, dy;
+      double yaw;
+      gridNode_t prev, current;
+      if (it == path_nodes.begin()) {
+        prev = *(it);
+      } else {
+        current = *(it);
+        dx = current.pos.x - prev.pos.x;
+        dy = current.pos.y - prev.pos.y;
+        yaw = std::atan2(dy, dx);
+        std::vector<nav2_costmap_2d::MapLocation> visited_cells;
+        computeFootprintCells(current.pos.x, current.pos.y, yaw, "tool", visited_cells);
+        for (const auto cell : visited_cells) {
+          visited[cell.y][cell.x] = eNodeVisited;
+          visited_copy[cell.y][cell.x] = eNodeVisited;
+        }
+        prev = current;
+      }
+    }
+
     visited = visited_copy; // TODO(AronTiemessen): Reset debugging grid
 
     RCLCPP_INFO(
@@ -752,8 +775,8 @@ std::list<Point_t> SpiralSTC::spiral_stc(
     }
   }
 
-  visualizeGrid(visited, "visited_cubes", 0.3, 0.0, 0.0, 0.8);
-  visualizeGrid(visited_copy, "visited_cubes_copy", 0.3, 0.0, 0.8, 0.0);
+  visualizeGrid(visited, "visited_cubes", 0.25, 0.0, 0.0, 0.8);
+  visualizeGrid(visited_copy, "visited_cubes_copy", 0.25, 0.0, 0.8, 0.0);
 
   return full_path;
 }
