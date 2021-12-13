@@ -122,11 +122,6 @@ protected:
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> grid_pub;
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> spirals_pub;
 
-  // Enumeration of possible rotate directions of a manoeuvre
-  // When eAnyDirection is used, the shortest rotation is preferred.
-  // If both directions are equal in length, counter-clockwise is the default
-  enum eRotateDirection {eClockwise, eAnyDirection, eCounterClockwise};
-
   /**
    * @brief Given a goal pose in the world, compute a plan
    * @param start The start pose

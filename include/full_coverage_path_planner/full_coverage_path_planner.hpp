@@ -107,6 +107,11 @@ protected:
     return tf2::toMsg(q);
   }
 
+  // Enumeration of possible rotate directions of a manoeuvre
+  // When eAnyDirection is used, the shortest rotation is preferred.
+  // If both directions are equal in length, counter-clockwise is the default
+  enum eRotateDirection {eClockwise, eAnyDirection, eCounterClockwise};
+
   nav2_util::LifecycleNode::SharedPtr node_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
   double vehicle_width_, plan_resolution_, tile_size_;
@@ -114,8 +119,10 @@ protected:
   dPoint_t grid_origin_;
   bool initialized_;
   geometry_msgs::msg::PoseStamped previous_goal_;
+  double previous_orientation_;
   std::string name_, global_frame_;
   nav2_costmap_2d::Costmap2D * costmap_;
+  std::vector<eRotateDirection> turn_around_directions_; //
 
   struct spiral_cpp_metrics_type
   {

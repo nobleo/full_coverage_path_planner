@@ -140,9 +140,9 @@ std::list<gridNode_t> SpiralSTC::spiral(
   }
   gridNode_t prev = *(it);
 
-  // Initialize spiral direction towards the y-axis
-  int dx = 0;
-  int dy = 1; // TODO(AronTiemessen): Initialize the spiral toward robot y-axis (cos(yaw_start) and sin(yaw_start))
+  // Initialize spiral direction towards the y-axis of the vehicle
+  int dx = cos(yaw_start + M_PI_2);
+  int dy = sin(yaw_start + M_PI_2);
   int dx_prev;
   double yaw_current = yaw_start;
 
@@ -159,6 +159,8 @@ std::list<gridNode_t> SpiralSTC::spiral(
     visited[init_cell.y][init_cell.x] = eNodeVisited;
     visited_copy[init_cell.y][init_cell.x] = eNodeVisited;
   }
+
+  // Start collecting visited cells to remove if added nodes turn out to be unsafe
   unsafe_visited_cells.insert(unsafe_visited_cells.end(), init_cells.begin(), init_cells.end());
 
   // Start the spiralling procedure
@@ -171,7 +173,7 @@ std::list<gridNode_t> SpiralSTC::spiral(
     int y_current = path_nodes.back().pos.y;
 
     if (it != path_nodes.begin()) {
-      // Turn counter-clockwise
+      // Turn counter-clockwise and compute new heading angle
       dx = x_current - prev.pos.x;
       dy = y_current - prev.pos.y;
       yaw_current = std::atan2(dy, dx);
@@ -180,7 +182,7 @@ std::list<gridNode_t> SpiralSTC::spiral(
       dy = dx_prev;
     }
 
-    // Save the starting node as the most recent safe node if it is safe to turn around
+    // Save the current node as the most recent safe node if it is safe to turn around (left, right or both)
     bool current_node_is_safe = false;
     if (transformRelativeManoeuvre(
         x_current, y_current, yaw_current, vehicle_turn_around_left_rel, man_cells))
@@ -188,8 +190,8 @@ std::list<gridNode_t> SpiralSTC::spiral(
       if (checkManoeuvreCollision(man_cells, grid)) {
         current_node_is_safe = true;
         spiral_has_safe_node = true;
-        stored_spiral_cpp_metrics = spiral_cpp_metrics_;
-        unsafe_visited_cells.clear();
+        stored_spiral_cpp_metrics = spiral_cpp_metrics_;  // Store the current state of metrics in case we recover back to this node
+        unsafe_visited_cells.clear();  // All visited cells up until this point are safe
         it_safe_node = --(path_nodes.end());  // Can turn around left without obstacles or going out of bounds, so remember as a safe node
       }
     }
@@ -205,12 +207,12 @@ std::list<gridNode_t> SpiralSTC::spiral(
       }
     }
 
-    // Dictates in which direction (out of the 3) the spiral will start looking to explore after restoring to a safe node
+    // Control in which direction (out of the 3) the spiral will start looking to explore after restoring to a safe node
     int i_start = 0;
     if (restored) {
       // If the planner just restored to a recent safe node, configure variables so that it will try exploring the next untested direction
-      i_start = explored_dir + 1;
-      spiral_cpp_metrics_ = stored_spiral_cpp_metrics;
+      i_start = explored_dir + 1;  // Start looking in the first unexplored direction
+      spiral_cpp_metrics_ = stored_spiral_cpp_metrics;  // Reset metrics
       for (int i = 0; i < i_start; i++) {
         // Turn counter-clockwise until dx and dy match the direction of i_start
         dx_prev = dx;
@@ -232,14 +234,15 @@ std::list<gridNode_t> SpiralSTC::spiral(
           "FullCoveragePathPlanner"), "Manoeuvre from (x=%d, y=%d, yaw=%f) to (x=%d, y=%d, yaw=%f)",
         x_current, y_current, yaw_current, x_next, y_next, yaw_next);
 
+      int max_overlap;  // Changing parameter indicating the maximum overlap for a given manoeuvre
+      bool man_is_free = true;  // This condition might change in the loop below, indicating a manoeuvre is free
+
       // Apply a rotation to the relative manoeuvre cells to convert from robot frame to world frame
-      int max_overlap;
-      bool man_is_free = true;  // This condition might change in the loop below
       if (i == 0) {  // Transform standard relative left turn manoeuvre
         if (!transformRelativeManoeuvre(
             x_current, y_current, yaw_current, vehicle_left_turn_rel, man_cells) ||
           !transformRelativeManoeuvre(
-            x_current, y_current, yaw_current, tool_left_turn_rel, visited_cells)) // TODO(AronTiemessen): Do we need to check the tool, or assume it is inside vehicle footprint?
+            x_current, y_current, yaw_current, tool_left_turn_rel, visited_cells))
         {
           man_is_free = false;
           RCLCPP_INFO(
@@ -282,7 +285,7 @@ std::list<gridNode_t> SpiralSTC::spiral(
             "FullCoveragePathPlanner"), "  --> causing a collision, looking in other directions");
       }
 
-      // For debugging purposes
+      // For debugging purposes, print the most recent safe node
       if (spiral_has_safe_node) {
         gridNode_t safe_node = *(it_safe_node);
         RCLCPP_INFO(
@@ -292,11 +295,11 @@ std::list<gridNode_t> SpiralSTC::spiral(
       }
 
       if (collision_manoeuvres == 3) {  // Meaning all possible manoeuvres would result in a collision
+        RCLCPP_INFO(
+          rclcpp::get_logger(
+            "FullCoveragePathPlanner"),
+          "!!!!!!!!!!!! All 3 directions lead to a collision !!!!!!!!!!!!");
         if (spiral_has_safe_node) {
-          RCLCPP_INFO(
-            rclcpp::get_logger(
-              "FullCoveragePathPlanner"),
-            "!!!!!!!!!!!! All 3 directions lead to a collision !!!!!!!!!!!!");
           std::list<gridNode_t>::iterator it_start_unsafe_path = ++(it_safe_node);
           RCLCPP_INFO(
             rclcpp::get_logger(
@@ -347,8 +350,9 @@ std::list<gridNode_t> SpiralSTC::spiral(
           break;
         } else {
           RCLCPP_INFO(
-          rclcpp::get_logger(
-            "FullCoveragePathPlanner"), "SPIRAL DOES NOT HAVE SAFE NODE BUT NEEDS TO BE RESTORED");
+            rclcpp::get_logger(
+              "FullCoveragePathPlanner"),
+            "!!!!!!!!!!!! Spiral does not have safe node but needs to be restored !!!!!!!!!!!!");
 
           // Unmark the visited cells belonging to the removed nodes
           for (const auto unsafe_visited_cell : unsafe_visited_cells) {
@@ -448,7 +452,11 @@ bool SpiralSTC::planAStarToOpenSpace(
   closed[init.pos.y][init.pos.x] = eNodeVisited;  // Of course we have visited the current/initial location
 
   #ifdef DEBUG_PLOT
-  RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: Marked init gridNode_t((%d, %d), %d, %d) as eNodeVisited (true)", init.pos.x, init.pos.y, init.cost, init.he);
+  RCLCPP_INFO(
+    rclcpp::get_logger(
+      "FullCoveragePathPlanner"),
+    "A*: Marked init gridNode_t((%d, %d), %d, %d) as eNodeVisited (true)", init.pos.x, init.pos.y,
+    init.cost, init.he);
   #endif
 
   std::vector<std::vector<gridNode_t>> open(1, std::vector<gridNode_t>(1, init));  // open is a *vector* of paths
@@ -456,7 +464,8 @@ bool SpiralSTC::planAStarToOpenSpace(
   while (true) { // Keep searching until either a path is found or no path can be found
 
     #ifdef DEBUG_PLOT
-    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: open.size() = %lu", open.size());
+    RCLCPP_INFO(
+      rclcpp::get_logger("FullCoveragePathPlanner"), "A*: open.size() = %lu", open.size());
     #endif
 
     if (open.size() == 0) {  // If there are no open paths, there's no place to go and we must resign
@@ -471,7 +480,11 @@ bool SpiralSTC::planAStarToOpenSpace(
       open.pop_back();  // The last element is no longer open because we use it here, so remove from open list
 
       #ifdef DEBUG_PLOT
-      RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: Check out path from (%d, %d) to (%d, %d) of length %lu", nn.front().pos.x, nn.front().pos.y, nn.back().pos.x, nn.back().pos.y, nn.size());
+      RCLCPP_INFO(
+        rclcpp::get_logger(
+          "FullCoveragePathPlanner"),
+        "A*: Check out path from (%d, %d) to (%d, %d) of length %lu", nn.front().pos.x,
+        nn.front().pos.y, nn.back().pos.x, nn.back().pos.y, nn.size());
       #endif
 
       // Does the path nn end in open space?
@@ -509,28 +522,31 @@ bool SpiralSTC::planAStarToOpenSpace(
           int x_current = nn.back().pos.x;
           int y_current = nn.back().pos.y;
 
-          Point_t p_next = {nn.back().pos.x + dx, nn.back().pos.y + dy}; // TODO(AronTiemessen): use more descriptive names and fix x_current x_next situation
+          Point_t p_next = {nn.back().pos.x + dx, nn.back().pos.y + dy};
 
           #ifdef DEBUG_PLOT
-          RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: Look around in direction %d at p_next=(%d, %d)", i, p_next.x, p_next.y);
+          RCLCPP_INFO(
+            rclcpp::get_logger(
+              "FullCoveragePathPlanner"), "A*: Look around in direction %d at p_next=(%d, %d)", i,
+            p_next.x, p_next.y);
           #endif
 
           std::vector<nav2_costmap_2d::MapLocation> man_cells;
           bool out_of_bounds = false;
           if (i == 0) {
-            if(!transformRelativeManoeuvre(
+            if (!transformRelativeManoeuvre(
                 x_current, y_current, yaw_current, vehicle_left_turn_rel, man_cells))
             {
               out_of_bounds = true;
             }
           } else if (i == 1) {
-            if(!transformRelativeManoeuvre(
+            if (!transformRelativeManoeuvre(
                 x_current, y_current, yaw_current, vehicle_forward_rel, man_cells))
             {
               out_of_bounds = true;
             }
           } else if (i == 2) {
-            if(!transformRelativeManoeuvre(
+            if (!transformRelativeManoeuvre(
                 x_current, y_current, yaw_current, vehicle_right_turn_rel, man_cells))
             {
               out_of_bounds = true;
@@ -539,29 +555,37 @@ bool SpiralSTC::planAStarToOpenSpace(
             // Makes sure both options for turning around are considered
             std::vector<nav2_costmap_2d::MapLocation> man_cells_left, man_cells_right;
             bool turn_around_left_possible, turn_around_right_possible;
-            turn_around_left_possible = transformRelativeManoeuvre(x_current, y_current,
-              yaw_current, vehicle_turn_around_left_with_step_rel, man_cells_left);
-            turn_around_right_possible = transformRelativeManoeuvre(x_current, y_current,
-              yaw_current, vehicle_turn_around_right_with_step_rel, man_cells_right);
-            if(!turn_around_left_possible && !turn_around_right_possible) {
+            turn_around_left_possible = transformRelativeManoeuvre(
+              x_current, y_current, yaw_current, vehicle_turn_around_left_with_step_rel,
+              man_cells_left);
+            turn_around_right_possible = transformRelativeManoeuvre(
+              x_current, y_current, yaw_current, vehicle_turn_around_right_with_step_rel,
+              man_cells_right);
+            if (!turn_around_left_possible && !turn_around_right_possible) {
               out_of_bounds = true;
-            } else if (turn_around_left_possible & checkManoeuvreCollision(man_cells_left, grid)) {
+            } else if (turn_around_left_possible &
+              checkManoeuvreCollision(man_cells_left, grid))
+            {
               man_cells = man_cells_left;
-            } else if (turn_around_right_possible & checkManoeuvreCollision(man_cells_right, grid)) {
+            } else if (turn_around_right_possible &
+              checkManoeuvreCollision(man_cells_right, grid))
+            {
               man_cells = man_cells_right;
             }
           }
 
-          // TODO(AronTiemessen): add the overlap condition here instead of starting over with A* all the time in spiral_stc??
-          // TODO(AronTiemessen): move the collision check to the if else statement above??
+          // TODO(AronTiemessen): Add the overlap condition here instead of starting over with A* all the time in spiral_stc??
           // If the new node (a neighbor of the end of the path nn) is open, append it to new_path ( = nn)
           // and add that to the open-list of paths.
           // Because of the pop_back on open, what happens is that the path is temporarily 'checked out',
           // modified here, and then added back (if the condition above and below holds)
-          if (closed[p_next.y][p_next.x] == eNodeOpen && checkManoeuvreCollision(man_cells, grid) && !out_of_bounds) {
-
+          if (closed[p_next.y][p_next.x] == eNodeOpen &&
+            checkManoeuvreCollision(man_cells, grid) && !out_of_bounds)
+          {
             #ifdef DEBUG_PLOT
-            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: p_next=(%d, %d) is OPEN", p_next.x, p_next.y);
+            RCLCPP_INFO(
+              rclcpp::get_logger(
+                "FullCoveragePathPlanner"), "A*: p_next=(%d, %d) is OPEN", p_next.x, p_next.y);
             #endif
 
             std::vector<gridNode_t> new_path = nn;
@@ -577,8 +601,17 @@ bool SpiralSTC::planAStarToOpenSpace(
             closed[new_node.pos.y][new_node.pos.x] = eNodeVisited;  // New node is now used in a path and thus visited
 
             #ifdef DEBUG_PLOT
-            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: Marked new_node gridNode_t((%d, %d), %d, %d) as eNodeVisited (true)", new_node.pos.x, new_node.pos.y, new_node.cost, new_node.he);
-            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: Add path from (%d, %d) to (%d, %d) of length %lu to open", new_path.front().pos.x, new_path.front().pos.y, new_path.back().pos.x, new_path.back().pos.y, new_path.size());
+            RCLCPP_INFO(
+              rclcpp::get_logger(
+                "FullCoveragePathPlanner"),
+              "A*: Marked new_node gridNode_t((%d, %d), %d, %d) as eNodeVisited (true)",
+              new_node.pos.x, new_node.pos.y, new_node.cost, new_node.he);
+            RCLCPP_INFO(
+              rclcpp::get_logger(
+                "FullCoveragePathPlanner"),
+              "A*: Add path from (%d, %d) to (%d, %d) of length %lu to open",
+              new_path.front().pos.x, new_path.front().pos.y, new_path.back().pos.x,
+              new_path.back().pos.y, new_path.size());
             #endif
 
             open.push_back(new_path);
@@ -586,7 +619,9 @@ bool SpiralSTC::planAStarToOpenSpace(
 
           #ifdef DEBUG_PLOT
           else {
-            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "A*: p_next=(%d, %d) is not open: closed or collision", p_next.x, p_next.y);
+            RCLCPP_INFO(
+              rclcpp::get_logger("FullCoveragePathPlanner"),
+              "A*: p_next=(%d, %d) is not open: closed or collision", p_next.x, p_next.y);
           }
           #endif
 
@@ -635,7 +670,7 @@ std::list<Point_t> SpiralSTC::spiral_stc(
 
   while (goals.size() != 0) {
     // spiral_counter++;  // Count number of spirals planned
-    // if (spiral_counter == 2) {
+    // if (spiral_counter == 4) {
     //   RCLCPP_INFO(
     //     rclcpp::get_logger(
     //       "FullCoveragePathPlanner"),
@@ -647,7 +682,8 @@ std::list<Point_t> SpiralSTC::spiral_stc(
     if (path_nodes.size() > 0) {
       std::list<gridNode_t>::iterator it = path_nodes.end();
       std::advance(it, -2);
-      yaw_init = std::atan2(path_nodes.back().pos.y - it->pos.y, path_nodes.back().pos.x - it->pos.x);
+      yaw_init =
+        std::atan2(path_nodes.back().pos.y - it->pos.y, path_nodes.back().pos.x - it->pos.x);
     }
 
     // Remove all elements from path_nodes list except last element (starting point for A*)
@@ -662,7 +698,8 @@ std::list<Point_t> SpiralSTC::spiral_stc(
     bool accept_a_star = false;
     bool resign;
     while (!accept_a_star) {
-      resign = planAStarToOpenSpace(grid, path_nodes.back(), yaw_init, 1, visited, goals, path_nodes);
+      resign =
+        planAStarToOpenSpace(grid, path_nodes.back(), yaw_init, 1, visited, goals, path_nodes);
       if (resign) {
         break;
       }
@@ -695,7 +732,7 @@ std::list<Point_t> SpiralSTC::spiral_stc(
           visit_count++;
         }
       }
-      if (!accept_a_star || visit_count > 0) { //TODO(AronTiemessen): Rethink visit count > max(turn_, forward_)??
+      if (!accept_a_star || visit_count > 0) {
         visited[y_n][x_n] = eNodeVisited;
         path_nodes.erase(++(path_nodes.begin()), path_nodes.end());
         accept_a_star = false;
@@ -705,9 +742,46 @@ std::list<Point_t> SpiralSTC::spiral_stc(
       break;
     }
 
+    // Remove one of the double nodes at the start, it is already in the fullpath via the endpoints of the previous spiral
+    path_nodes.erase(path_nodes.begin(), ++(path_nodes.begin()));
+
+    // Check the output path for 180 degree turns, save them to introduce intermediate poses later
+    std::list<gridNode_t>::iterator it_prev = path_nodes.begin();
+    for (std::list<gridNode_t>::iterator it = path_nodes.begin(); it != path_nodes.end(); ++it) {
+      double yaw, yaw_prev;
+      if (it == path_nodes.begin()) {
+        yaw = yaw_init;
+      } else {
+        int dx = it->pos.x - it_prev->pos.x;
+        int dy = it->pos.y - it_prev->pos.y;
+        yaw = std::atan2(dy, dx);
+        if ((cos(yaw) == -cos(yaw_prev) && cos(yaw) != 0) ||
+          (sin(yaw) == -sin(yaw_prev) && sin(yaw) != 0))
+        {
+          std::vector<nav2_costmap_2d::MapLocation> man_cells;
+          bool turn_is_possible = transformRelativeManoeuvre(
+            it_prev->pos.x, it_prev->pos.y, yaw_prev, vehicle_turn_around_left_rel, man_cells);
+          if (turn_is_possible && checkManoeuvreCollision(man_cells, grid)) {
+            turn_around_directions_.push_back(eCounterClockwise);
+          } else {
+            turn_is_possible = transformRelativeManoeuvre(
+              it_prev->pos.x, it_prev->pos.y, yaw_prev, vehicle_turn_around_right_rel, man_cells);
+            if (turn_is_possible && checkManoeuvreCollision(man_cells, grid)) {
+              turn_around_directions_.push_back(eClockwise);
+            }
+          }
+        }
+      }
+      yaw_prev = yaw;
+      it_prev = it;
+    }
+
+    // Remove the other double node at the start, it is already in the fullpath via the endpoints of the previous spiral
+    path_nodes.erase(path_nodes.begin(), ++(path_nodes.begin()));
+
     // Mark cells covered by A* path as visited
-    //TODO (AronTiemessen): Currently done using static footprints, convert to manoeuvres
-    for (std::list<gridNode_t>::iterator it = path_nodes.begin(); it != path_nodes.end(); ++it){
+    // TODO(AronTiemessen): Currently done using static footprints, convert to manoeuvres
+    for (std::list<gridNode_t>::iterator it = path_nodes.begin(); it != path_nodes.end(); ++it) {
       int dx, dy;
       double yaw;
       gridNode_t prev, current;
@@ -876,7 +950,7 @@ bool SpiralSTC::makePlan(
   RCLCPP_INFO(
     rclcpp::get_logger(
       "FullCoveragePathPlanner"), "Final coverage: %f percent",
-    (static_cast<double>(spiral_cpp_metrics_.accessible_counter)/to_be_cleaned_cells)*100);
+    (static_cast<double>(spiral_cpp_metrics_.accessible_counter) / to_be_cleaned_cells) * 100);
   RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
   // TODO(CesarLopez): Check if global path should be calculated repetitively or just kept (also controlled by planner_frequency parameter in move_base namespace)
@@ -912,10 +986,10 @@ bool SpiralSTC::computeFootprintCells(
     p.x = 0.0;
     p.y = 0.4;
     tool_footprint.push_back(p);
-    p.x = 0.55;
+    p.x = 0.4; //0.55;
     p.y = 0.4;
     tool_footprint.push_back(p);
-    p.x = 0.55;
+    p.x = 0.4; //0.55;
     p.y = -0.4;
     tool_footprint.push_back(p);
     p.x = 0.0;
@@ -955,11 +1029,17 @@ bool SpiralSTC::computeFootprintCells(
   }
 
   // Find the cells below the convex footprint and save them
-  if (footprint_ML.size() < 3) {
+  // TODO(AronTiemessen): Here we might want to use Bresenham's algorithm
+  if (footprint_ML.size() == 1) {
     RCLCPP_INFO(
       rclcpp::get_logger(
-        "FullCoveragePathPlanner"), "Footprint does not consists of 3 or more points!");
-    // TODO(AronTiemessen): Here we might want to use Bresenham's algorithm
+        "FullCoveragePathPlanner"), "Footprint consists of only 1 point!");
+    footprint_cells = footprint_ML;
+  } else if (footprint_ML.size() == 2) {
+    RCLCPP_INFO(
+      rclcpp::get_logger(
+        "FullCoveragePathPlanner"), "Footprint only consists of 2 points!");
+    footprint_cells = footprint_ML;
   }
   planner_grid.convexFillCells(footprint_ML, footprint_cells);
   return true;

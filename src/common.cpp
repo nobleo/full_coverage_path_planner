@@ -45,7 +45,8 @@ int distanceSquared(const Point_t & p1, const Point_t & p2)
   return d2;
 }
 
-std::list<Point_t> retrieveGoalsFromMap(std::vector<std::vector<bool>> const & grid, bool value_to_search)
+std::list<Point_t> retrieveGoalsFromMap(
+  std::vector<std::vector<bool>> const & grid, bool value_to_search)
 {
   std::list<Point_t> goals;
   int ix, iy, n_rows = grid.size(), n_cols = grid[0].size();
