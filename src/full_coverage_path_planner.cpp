@@ -193,8 +193,8 @@ namespace full_coverage_path_planner
   {
     size_t nodeRow;
     size_t nodeColl;
-    size_t nodeSize = dmax(floor(toolRadius / cpp_costmap->getResolution()), 1);       // Size of node in pixels/units
-    size_t robotNodeSize = dmax(floor(robotRadius / cpp_costmap->getResolution()), 1); // RobotRadius in pixels/units
+    size_t nodeSize = dmax(ceil(toolRadius / cpp_costmap->getResolution()), 1);       // Size of node in pixels/units
+    size_t robotNodeSize = dmax(ceil(robotRadius / cpp_costmap->getResolution()), 1); // RobotRadius in pixels/units
     size_t nRows = cpp_costmap->getSizeInCellsY();
     size_t nCols = cpp_costmap->getSizeInCellsX();
     unsigned char * cpp_costmap_data = cpp_costmap->getCharMap();
@@ -221,9 +221,9 @@ namespace full_coverage_path_planner
       for (size_t ix = 0; ix < nCols; ix = ix + nodeSize)
       {
         bool nodeOccupied = false;
-        for (nodeRow = 0; (nodeRow < robotNodeSize) && ((iy + nodeRow) < nRows) && (nodeOccupied == false); ++nodeRow)
+        for (nodeRow = 0; (nodeRow < robotNodeSize) && (nodeOccupied == false); ++nodeRow)  // removed && ((iy + nodeRow) < nRows)
         {
-          for (nodeColl = 0; (nodeColl < robotNodeSize) && ((ix + nodeColl) < nCols); ++nodeColl)
+          for (nodeColl = 0; (nodeColl < robotNodeSize) && (nodeOccupied == false); ++nodeColl)  // removed && ((ix + nodeColl) < nCols)
           {
             int index_grid = dmax((iy + nodeRow - ceil(static_cast<double>(robotNodeSize - nodeSize) / 2.0)) * nCols + (ix + nodeColl - ceil(static_cast<double>(robotNodeSize - nodeSize) / 2.0)), 0);
             if (cpp_costmap_data[index_grid] > COVERAGE_COST)
