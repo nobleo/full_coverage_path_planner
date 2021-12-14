@@ -740,44 +740,10 @@ std::list<Point_t> SpiralSTC::spiral_stc(
     }
     if (resign) {
       break;
+      RCLCPP_INFO(
+        rclcpp::get_logger(
+         "FullCoveragePathPlanner"), "!!!!!!!!!!!! Resigning from A* !!!!!!!!!!!!");
     }
-
-    // Remove one of the double nodes at the start, it is already in the fullpath via the endpoints of the previous spiral
-    path_nodes.erase(path_nodes.begin(), ++(path_nodes.begin()));
-
-    // Check the output path for 180 degree turns, save them to introduce intermediate poses later
-    std::list<gridNode_t>::iterator it_prev = path_nodes.begin();
-    for (std::list<gridNode_t>::iterator it = path_nodes.begin(); it != path_nodes.end(); ++it) {
-      double yaw, yaw_prev;
-      if (it == path_nodes.begin()) {
-        yaw = yaw_init;
-      } else {
-        int dx = it->pos.x - it_prev->pos.x;
-        int dy = it->pos.y - it_prev->pos.y;
-        yaw = std::atan2(dy, dx);
-        if ((cos(yaw) == -cos(yaw_prev) && cos(yaw) != 0) ||
-          (sin(yaw) == -sin(yaw_prev) && sin(yaw) != 0))
-        {
-          std::vector<nav2_costmap_2d::MapLocation> man_cells;
-          bool turn_is_possible = transformRelativeManoeuvre(
-            it_prev->pos.x, it_prev->pos.y, yaw_prev, vehicle_turn_around_left_rel, man_cells);
-          if (turn_is_possible && checkManoeuvreCollision(man_cells, grid)) {
-            turn_around_directions_.push_back(eCounterClockwise);
-          } else {
-            turn_is_possible = transformRelativeManoeuvre(
-              it_prev->pos.x, it_prev->pos.y, yaw_prev, vehicle_turn_around_right_rel, man_cells);
-            if (turn_is_possible && checkManoeuvreCollision(man_cells, grid)) {
-              turn_around_directions_.push_back(eClockwise);
-            }
-          }
-        }
-      }
-      yaw_prev = yaw;
-      it_prev = it;
-    }
-
-    // Remove the other double node at the start, it is already in the fullpath via the endpoints of the previous spiral
-    path_nodes.erase(path_nodes.begin(), ++(path_nodes.begin()));
 
     // Mark cells covered by A* path as visited
     // TODO(AronTiemessen): Currently done using static footprints, convert to manoeuvres
@@ -849,6 +815,15 @@ std::list<Point_t> SpiralSTC::spiral_stc(
     }
   }
 
+  // For visualization purposes only, remove the green hue from obstacle cells
+  for (uint ix = 0; ix < visited.size(); ix++) {
+    for (uint iy = 0; iy < visited[0].size(); iy++) {
+      if (grid[iy][ix] == eNodeVisited) {
+        visited[iy][ix] = eNodeOpen;
+        visited_copy[iy][ix] = eNodeOpen;
+      }
+    }
+  }
   visualizeGrid(visited, "visited_cubes", 0.25, 0.0, 0.0, 0.8);
   visualizeGrid(visited_copy, "visited_cubes_copy", 0.25, 0.0, 0.8, 0.0);
 
@@ -889,7 +864,7 @@ bool SpiralSTC::makePlan(
 
   // Grid visualization with occupied cells greyed out
   visualizeGridlines();
-  visualizeGrid(grid, "grid_cubes", 0.6, 0.0, 0.0, 0.0);
+  visualizeGrid(grid, "grid_cubes", 0.5, 0.0, 0.0, 0.0);
 
   // Compute the standard manoeuvres (for vehicle and tool) to be reused in the spiral loop later
   vehicle_left_turn_rel = computeRelativeManoeuvreFootprint(
@@ -915,6 +890,48 @@ bool SpiralSTC::makePlan(
 
   std::list<Point_t> goal_points = spiral_stc(grid, start_point, yaw_start);
   RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Coverage path planning completed!");
+
+  // Remove repeating waypoints (result of transition between spiral and A*)
+  std::list<Point_t>::iterator it_prev;
+  for (std::list<Point_t>::iterator it = goal_points.end(); it != goal_points.begin(); --it) {
+    if (it != goal_points.end()) {
+      if (it->x == it_prev->x && it->y == it_prev->y) {
+        goal_points.erase(it_prev);
+      }
+    }
+    it_prev = it;
+  }
+
+  // Keep track of the 180 degree turns and save the rotation direction in a list
+  it_prev = goal_points.begin();
+  double yaw, yaw_prev;
+  for (std::list<Point_t>::iterator it = goal_points.begin(); it != goal_points.end(); ++it) {
+      if (it == goal_points.begin()) {
+        yaw = yaw_start;
+      } else {
+        int dx = it->x - it_prev->x;
+        int dy = it->y - it_prev->y;
+        yaw = std::atan2(dy, dx);
+        if ((cos(yaw) == -cos(yaw_prev) && cos(yaw) != 0) ||
+          (sin(yaw) == -sin(yaw_prev) && sin(yaw) != 0))
+        {
+          std::vector<nav2_costmap_2d::MapLocation> man_cells;
+          bool turn_is_possible = transformRelativeManoeuvre(
+          it_prev->x, it_prev->y, yaw_prev, vehicle_turn_around_left_rel, man_cells);
+          if (turn_is_possible && checkManoeuvreCollision(man_cells, grid)) {
+            turn_around_directions_.push_back(eCounterClockwise);
+          } else {
+            turn_is_possible = transformRelativeManoeuvre(
+            it_prev->x, it_prev->y, yaw_prev, vehicle_turn_around_right_rel, man_cells);
+            if (turn_is_possible && checkManoeuvreCollision(man_cells, grid)) {
+              turn_around_directions_.push_back(eClockwise);
+            }
+          }
+        }
+      }
+      yaw_prev = yaw;
+      it_prev = it;
+  }
 
   parsePointlist2Plan(start, goal_points, plan);
   RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Path converted to plan");
