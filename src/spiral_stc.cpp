@@ -816,8 +816,8 @@ std::list<Point_t> SpiralSTC::spiral_stc(
   }
 
   // For visualization purposes only, remove the green hue from obstacle cells
-  for (uint ix = 0; ix < visited.size(); ix++) {
-    for (uint iy = 0; iy < visited[0].size(); iy++) {
+  for (uint ix = 0; ix < visited[0].size(); ix++) {
+    for (uint iy = 0; iy < visited.size(); iy++) {
       if (grid[iy][ix] == eNodeVisited) {
         visited[iy][ix] = eNodeOpen;
         visited_copy[iy][ix] = eNodeOpen;

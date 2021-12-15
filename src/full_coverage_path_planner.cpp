@@ -114,8 +114,7 @@ void FullCoveragePathPlanner::parsePointlist2Plan(
 
       // Check if this points needs to be published (i.e. a change of direction or first or last point in list)
       // Also here filter for repeating waypoints
-      do_publish = (!(it->x == it_next->x && it->y == it_next->y)) &&
-        (move_dir_next != move_dir_now || it == goalpoints.begin() ||
+      do_publish = (move_dir_next != move_dir_now || it == goalpoints.begin() ||
         (it != goalpoints.end() && it == --goalpoints.end()));
 
       // Add to vector if required
