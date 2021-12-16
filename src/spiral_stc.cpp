@@ -824,8 +824,8 @@ std::list<Point_t> SpiralSTC::spiral_stc(
       }
     }
   }
-  visualizeGrid(visited, "visited_cubes", 0.25, 0.0, 0.0, 0.8);
-  visualizeGrid(visited_copy, "visited_cubes_copy", 0.25, 0.0, 0.8, 0.0);
+  // visualizeGrid(visited, "visited_cubes", 0.25, 0.8, 0.0, 0.0);
+  visualizeGrid(visited_copy, "visited_cubes_copy", 0.25, 0.0, 0.0, 0.9);
 
   return full_path;
 }
