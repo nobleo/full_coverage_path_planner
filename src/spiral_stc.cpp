@@ -365,7 +365,7 @@ namespace full_coverage_path_planner
       }
     }
 
-    for (uint32_t i = 0; i < costmap_->getSizeInMetersX()/tile_size_ ; i++)
+    for (uint32_t i = 0; i < costmap_->getSizeInMetersY()/tile_size_ ; i++)
     {
       p.x = (grid_origin_.x);
       p.y = (grid_origin_.y) + i*tile_size_;
@@ -375,7 +375,7 @@ namespace full_coverage_path_planner
       gridLines.points.push_back(p);
     }
 
-    for (uint32_t i = 0; i < costmap_->getSizeInMetersY()/tile_size_ ; i++)
+    for (uint32_t i = 0; i < costmap_->getSizeInMetersX()/tile_size_ ; i++)
     {
       p.x = (grid_origin_.x) + i*tile_size_;
       p.y = (grid_origin_.y);
