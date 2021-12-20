@@ -891,6 +891,7 @@ bool SpiralSTC::makePlan(
   std::list<Point_t> goal_points = spiral_stc(grid, start_point, yaw_start);
   RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Coverage path planning completed!");
 
+  RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Removing repeating waypoints");
   // Remove repeating waypoints (result of transition between spiral and A*)
   std::list<Point_t>::iterator it_prev;
   for (std::list<Point_t>::iterator it = goal_points.end(); it != goal_points.begin(); --it) {
@@ -901,7 +902,9 @@ bool SpiralSTC::makePlan(
     }
     it_prev = it;
   }
+  RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Removed repeating waypoints");
 
+  RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Tracking 180 degree turns");
   // Keep track of the 180 degree turns and save the rotation direction in a list
   it_prev = goal_points.begin();
   double yaw, yaw_prev;
@@ -932,6 +935,7 @@ bool SpiralSTC::makePlan(
       yaw_prev = yaw;
       it_prev = it;
   }
+  RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Found the 180 degree turns");
 
   parsePointlist2Plan(start, goal_points, plan);
   RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Path converted to plan");
