@@ -70,6 +70,26 @@ void FullCoveragePathPlanner::parsePointlist2Plan(
   RCLCPP_INFO(
     rclcpp::get_logger(
       "FullCoveragePathPlanner"), "Received goalpoints with length: %lu", goalpoints.size());
+
+  // TODO(AronTiemessen): Eventually remove this, printing goalpoint list
+  tf2::Quaternion quat;
+  quat.setW(start.pose.orientation.w);
+  quat.setX(start.pose.orientation.x);
+  quat.setY(start.pose.orientation.y);
+  quat.setZ(start.pose.orientation.z);
+  double current_angle = quat.getAngle();
+  int prevpoint_x = goalpoints.front().x, prevpoint_y = goalpoints.front().y;
+  int goalpoint_counter =  0;
+  for (const auto point : goalpoints) {
+    RCLCPP_INFO(
+      rclcpp::get_logger(
+        "FullCoveragePathPlanner"), "Goalpoint %d: (x=%d, y=%d, o=%f)", goalpoint_counter, point.x, point.y, current_angle);
+    current_angle = std::atan2(point.x - prevpoint_x, point.y - prevpoint_y);
+    prevpoint_x = point.x;
+    prevpoint_y = point.y;
+    goalpoint_counter++;
+  }
+
   if (goalpoints.size() < 1) {
     RCLCPP_WARN(rclcpp::get_logger("FullCoveragePathPlanner"), "Empty point list");
     return;

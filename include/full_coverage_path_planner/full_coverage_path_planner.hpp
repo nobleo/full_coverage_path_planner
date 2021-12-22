@@ -122,7 +122,7 @@ protected:
   double previous_orientation_;
   std::string name_, global_frame_;
   nav2_costmap_2d::Costmap2D * costmap_;
-  std::vector<eRotateDirection> turn_around_directions_; //
+  std::vector<eRotateDirection> turn_around_directions_;
 
   struct spiral_cpp_metrics_type
   {
