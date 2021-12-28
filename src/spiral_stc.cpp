@@ -141,10 +141,10 @@ std::list<gridNode_t> SpiralSTC::spiral(
   gridNode_t prev = *(it);
 
   // Initialize spiral direction towards the y-axis of the vehicle
-  int dx = cos(yaw_start + M_PI_2);
-  int dy = sin(yaw_start + M_PI_2);
+  double yaw_current = std::round(yaw_start / M_PI_2) * M_PI_2;
+  int dx = cos(yaw_current + M_PI_2);
+  int dy = sin(yaw_current + M_PI_2);
   int dx_prev;
-  double yaw_current = yaw_start;
 
   // Mark initial footprint of the tool as visited
   std::vector<nav2_costmap_2d::MapLocation> init_cells, unsafe_visited_cells;

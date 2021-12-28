@@ -78,17 +78,24 @@ void FullCoveragePathPlanner::parsePointlist2Plan(
   quat.setY(start.pose.orientation.y);
   quat.setZ(start.pose.orientation.z);
   double current_angle = quat.getAngle();
+  if (current_angle > M_PI) {
+    current_angle -= 2 * M_PI;
+  }
   int prevpoint_x = goalpoints.front().x, prevpoint_y = goalpoints.front().y;
-  int goalpoint_counter =  0;
+  int goalpoint_counter =  1;
   for (const auto point : goalpoints) {
+    if (goalpoint_counter > 1) {
+      current_angle = std::atan2(point.y - prevpoint_y, point.x - prevpoint_x);
+    }
     RCLCPP_INFO(
       rclcpp::get_logger(
         "FullCoveragePathPlanner"), "Goalpoint %d: (x=%d, y=%d, o=%f)", goalpoint_counter, point.x, point.y, current_angle);
-    current_angle = std::atan2(point.x - prevpoint_x, point.y - prevpoint_y);
     prevpoint_x = point.x;
     prevpoint_y = point.y;
     goalpoint_counter++;
   }
+
+  RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Full turn arounds in the goals: %lu", turn_around_directions_.size());
 
   if (goalpoints.size() < 1) {
     RCLCPP_WARN(rclcpp::get_logger("FullCoveragePathPlanner"), "Empty point list");
@@ -164,9 +171,10 @@ void FullCoveragePathPlanner::parsePointlist2Plan(
           // Republish previous goal but with new orientation to indicate change of direction
           // Useful when the plan is strictly followed with base_link
           // Also add an intermediate orientation to dictate the rotation direction
-          if ((cos(orientation) == -cos(previous_orientation_) && cos(orientation) != 0) ||
-            (sin(orientation) == -sin(previous_orientation_) && sin(orientation) != 0))
+          if (((cos(orientation) == -cos(previous_orientation_) && cos(orientation) != 0) ||
+            (sin(orientation) == -sin(previous_orientation_) && sin(orientation) != 0)) && turn_around_directions_.size() > 0)
           {
+            RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Adding intermediate orientation");
             if (turn_around_directions_.back() == eClockwise) {
               previous_goal_.pose.orientation = createQuaternionMsgFromYaw(orientation - M_PI / 2);
               plan.push_back(previous_goal_);
@@ -186,26 +194,30 @@ void FullCoveragePathPlanner::parsePointlist2Plan(
     }
   }
 
-  // Add poses from current position to start of plan
-  // Compute angle between current pose and first plan point
-  double dy = plan.begin()->pose.position.y - start.pose.position.y;
-  double dx = plan.begin()->pose.position.x - start.pose.position.x;
-  // Arbitrary choice of 100.0*FLT_EPSILON to determine minimum angle precision of 1%
-  if (!(fabs(dy) < 100.0 * FLT_EPSILON && fabs(dx) < 100.0 * FLT_EPSILON)) {
-    // Add extra translation waypoint
-    double yaw = std::atan2(dy, dx);
-    geometry_msgs::msg::Quaternion quat_temp = createQuaternionMsgFromYaw(yaw);
-    geometry_msgs::msg::PoseStamped extra_pose;
-    extra_pose = *plan.begin();
-    extra_pose.pose.orientation = quat_temp;
-    plan.insert(plan.begin(), extra_pose);
-    extra_pose = start;
-    extra_pose.pose.orientation = quat_temp;
-    plan.insert(plan.begin(), extra_pose);
-  }
+  // // Add poses from current position to start of plan
+  // // Compute angle between current pose and first plan point
+  // double dy = plan.begin()->pose.position.y - start.pose.position.y;
+  // double dx = plan.begin()->pose.position.x - start.pose.position.x;
+  // RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "From start (%f, %f) to plan (%f, %f)", start.pose.position.x, start.pose.position.y, plan.begin()->pose.position.x, plan.begin()->pose.position.y);
+  // // Arbitrary choice of 100.0*FLT_EPSILON to determine minimum angle precision of 1%
+  // if (!(fabs(dy) < 100.0 * FLT_EPSILON && fabs(dx) < 100.0 * FLT_EPSILON)) {
+  //   // Add extra translation waypoint
+  //   double yaw = std::atan2(dy, dx);
+  //   RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Angle from starting section: %f", yaw);
+  //   geometry_msgs::msg::Quaternion quat_temp = createQuaternionMsgFromYaw(yaw);
+  //   geometry_msgs::msg::PoseStamped extra_pose;
+  //   extra_pose = *plan.begin();
+  //   extra_pose.pose.orientation = quat_temp;
+  //   plan.insert(plan.begin(), extra_pose);
+  //   extra_pose = start;
+  //   extra_pose.pose.orientation = quat_temp;
+  //   plan.insert(plan.begin(), extra_pose);
+  // }
 
-  // Insert current pose
-  plan.insert(plan.begin(), start);
+  // // Insert current pose
+  // plan.insert(plan.begin(), start);
+  // // RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "REMOVING FIRST WAYPOINT IN THE PARSED GOAL LIST, JUST TO TEST, REMOVE LATER")
+  // // TODO(aron): remove the above
 
   RCLCPP_INFO(
     rclcpp::get_logger("FullCoveragePathPlanner"), "Plan ready containing %lu goals!", plan.size());
@@ -250,6 +262,9 @@ bool FullCoveragePathPlanner::parseGrid(
   q.setY(real_start.pose.orientation.y);
   q.setZ(real_start.pose.orientation.z);
   yaw_start = q.getAngle();
+  if (yaw_start > M_PI) {  // q.getAngle() gives angle in [0, 2*PI], wrap back to [-PI, PI] if necessary
+    yaw_start -= 2 * M_PI;
+  }
 
   // Scale grid
   for (size_t iy = 0; iy < n_rows; iy = iy + node_size) {
