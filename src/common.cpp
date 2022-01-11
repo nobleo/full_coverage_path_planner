@@ -137,8 +137,8 @@ bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_
         {
           Point_t p2 =
           {
-            nn.back().pos.x + dx,
-            nn.back().pos.y + dy,
+            static_cast<int>(nn.back().pos.x + dx),
+            static_cast<int>(nn.back().pos.y + dy),
           };
 
 #ifdef DEBUG_PLOT
@@ -161,9 +161,9 @@ bool a_star_to_open_space(std::vector<std::vector<bool> > const &grid, gridNode_
               Point_t new_point = { p2.x, p2.y };
               gridNode_t new_node =
               {
-                new_point,                                                                // Point: x,y
-                cost + nn.back().cost,                                                    // Cost
-                cost + nn.back().cost + distanceToClosestPoint(p2, open_space) + i,
+                new_point,                                                                             // Point: x,y
+                static_cast<int>(cost + nn.back().cost),                                               // Cost
+                static_cast<int>(cost + nn.back().cost + distanceToClosestPoint(p2, open_space) + i),
                 // Heuristic (+i so CCW turns are cheaper)
               };
               newPath.push_back(new_node);
