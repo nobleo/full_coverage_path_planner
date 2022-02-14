@@ -39,6 +39,7 @@ add_library(${PROJECT_NAME} SHARED
   src/common.cpp
   src/${PROJECT_NAME}.cpp
   src/spiral_stc.cpp
+  src/curve_generator.cpp
 )
 
 ################################################################################
