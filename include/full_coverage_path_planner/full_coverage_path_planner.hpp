@@ -5,6 +5,19 @@
 /** for global path planner interface */
 #pragma once
 
+#include <angles/angles.h>
+
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <nav_msgs/srv/get_map.hpp>
+#include <nav2_costmap_2d/costmap_2d_ros.hpp>
+#include <nav2_util/node_utils.hpp>
+
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Vector3.h>
+
 #include <fstream>
 #include <list>
 #include <string>
@@ -13,16 +26,6 @@
 #include "full_coverage_path_planner/common.hpp"
 #include "full_coverage_path_planner/curve_generator.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include <angles/angles.h>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <nav_msgs/msg/occupancy_grid.hpp>
-#include <nav_msgs/msg/path.hpp>
-#include <nav_msgs/srv/get_map.hpp>
-#include <nav2_costmap_2d/costmap_2d_ros.hpp>
-#include <nav2_util/node_utils.hpp>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2/LinearMath/Vector3.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using std::string;
 
@@ -58,18 +61,19 @@ public:
    * @brief Default constructor for the NavFnROS object
    */
   FullCoveragePathPlanner();
-  // FullCoveragePathPlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
+  // FullCoveragePathPlanner(std::string name, costmap_2d::Costmap2DROS*
+  // costmap_ros);
 
-  ~FullCoveragePathPlanner()
-  {
-  }
+  ~FullCoveragePathPlanner() {}
 
   /**
    * @brief Publish a path for visualization purposes
    */
   void publishPlan(const std::vector<geometry_msgs::msg::PoseStamped> & path);
 
-  static const unsigned char COVERAGE_COST = 65;  // Cost for checking coverage. Perhaps define this in coverage costmap plugin?
+  // Cost for checking coverage. Perhaps define this in coverage costmap
+  // plugin?
+  static const unsigned char COVERAGE_COST = 65;
 
 protected:
   /**
@@ -79,27 +83,29 @@ protected:
    * @param plan Output plan variable
    */
   void parsePointlist2Plan(
-    const geometry_msgs::msg::PoseStamped & start, std::list<Point_t> const & goalpoints,
+    const geometry_msgs::msg::PoseStamped & start,
+    std::list<Point_t> const & goalpoints,
     std::vector<geometry_msgs::msg::PoseStamped> & plan);
 
   /**
    * @brief Convert internal representation of a path to a vector of paths
    * @param path robot plan containing list of poses
-   * @param enable_smoothing if true sections are stiched smoothly avoiding turning in place
+   * @param enable_smoothing if true sections are stiched smoothly avoiding
+   * turning in place
    * @param max_path_resolution Maximum desired resolution for smooth path
    * @param grid_size Grid size of original plan
    * @param path_vector Output path vector
    */
   void convertPlanToPathVector(
     const std::vector<geometry_msgs::msg::PoseStamped> & plan,
-    const bool enable_smoothing,
-    const double max_path_resolution,
-    const double grid_size,
-    std::vector<nav_msgs::msg::Path> & path_vector);
+    const bool enable_smoothing, const double max_path_resolution,
+    const double grid_size, std::vector<nav_msgs::msg::Path> & path_vector);
 
   /**
-   * @brief Convert ROS Occupancy grid to internal grid representation, given the size of a single tile
-   * @param cpp_grid_ ROS occupancy grid representation. Cells higher that 65 are considered occupied
+   * @brief Convert ROS Occupancy grid to internal grid representation, given
+   * the size of a single tile
+   * @param cpp_grid_ ROS occupancy grid representation. Cells higher that 65
+   * are considered occupied
    * @param grid Internal map representation
    * @param grid_size Size (in meters) of a cell. This can be the robot's size
    * @param real_start Start position of the robot (in meters)
@@ -108,9 +114,10 @@ protected:
    * @return If parsing the grid has succeeded, return true, otherwise false
    */
   bool parseGrid(
-    nav2_costmap_2d::Costmap2D const * cpp_costmap, std::vector<std::vector<bool>> & grid,
-    double grid_size, geometry_msgs::msg::PoseStamped const & real_start, Point_t & scaled_start,
-    double & yaw_start);
+    nav2_costmap_2d::Costmap2D const * cpp_costmap,
+    std::vector<std::vector<bool>> & grid, double grid_size,
+    geometry_msgs::msg::PoseStamped const & real_start,
+    Point_t & scaled_start, double & yaw_start);
 
   /**
    * @brief Create Quaternion from Yaw
@@ -128,12 +135,13 @@ protected:
   // Enumeration of possible rotate directions of a manoeuvre
   // When eAnyDirection is used, the shortest rotation is preferred.
   // If both directions are equal in length, counter-clockwise is the default
-  enum eRotateDirection {eClockwise, eAnyDirection, eCounterClockwise};
+  enum eRotateDirection { eClockwise, eAnyDirection, eCounterClockwise };
 
   nav2_util::LifecycleNode::SharedPtr node_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
   double vehicle_width_, plan_resolution_, tile_size_;
-  int division_factor_, manoeuvre_resolution_, max_overlap_forward_, max_overlap_turn_;
+  int division_factor_, manoeuvre_resolution_, max_overlap_forward_,
+    max_overlap_turn_;
   dPoint_t grid_origin_;
   bool initialized_;
   geometry_msgs::msg::PoseStamped previous_goal_;
@@ -157,9 +165,7 @@ protected:
 struct ComparatorForPointSort
 {
   explicit ComparatorForPointSort(Point_t poi)
-  : _poi(poi)
-  {
-  }
+  : _poi(poi) {}
 
   bool operator()(const Point_t & first, const Point_t & second) const
   {
@@ -170,4 +176,4 @@ private:
   Point_t _poi;
 };
 
-} // namespace full_coverage_path_planner
+}  // namespace full_coverage_path_planner
