@@ -16,9 +16,11 @@
 #include <list>
 #include <vector>
 
-namespace curve_generator {
+namespace curve_generator
+{
 
-class CubicBezier {
+class CubicBezier
+{
 public:
   CubicBezier() = default;
 
@@ -30,11 +32,12 @@ public:
    * @param normalized_step scale value to do interpolation
    * @param path output path
    */
-  void generateCubicBezierCurve(const tf2::Vector3 p0, const tf2::Vector3 p1,
-                                const tf2::Vector3 p2, const tf2::Vector3 p3,
-                                const double max_path_resolution,
-                                nav_msgs::msg::Path &path);
+  void generateCubicBezierCurve(
+    const tf2::Vector3 p0, const tf2::Vector3 p1,
+    const tf2::Vector3 p2, const tf2::Vector3 p3,
+    const double max_path_resolution,
+    nav_msgs::msg::Path & path);
 };
-} // namespace curve_generator
+}  // namespace curve_generator
 
-#endif // FULL_COVERAGE_PATH_PLANNER__CURVE_GENERATOR_HPP_
+#endif  // FULL_COVERAGE_PATH_PLANNER__CURVE_GENERATOR_HPP_
