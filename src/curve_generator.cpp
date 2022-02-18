@@ -3,11 +3,11 @@
 //
 #include "full_coverage_path_planner/curve_generator.hpp"
 
-namespace curve_generator
-{
+namespace curve_generator {
 
 // Generate Cubic BezierCurve using the logic in these sources
-// Link 1: https://en.wikipedia.org/wiki/B%C3%A9zier_curve#/media/File:B%C3%A9zier_3_big.svg
+// Link 1:
+// https://en.wikipedia.org/wiki/B%C3%A9zier_curve#/media/File:B%C3%A9zier_3_big.svg
 // Link 2:
 // https://en.wikipedia.org/wiki/B%C3%A9zier_curve#
 // Link 3:
@@ -16,11 +16,17 @@ namespace curve_generator
 // https://stackoverflow.com/questions/37642168/how-to-convert-quadratic-bezier-curve-code-into-cubic-bezier-curve/37642695#37642695
 // We add the calculation of the angle given by the blue lines in the gifs.
 
-void CubicBezier2D::generateCubicBezierCurve(
-  const tf2::Vector3 p0, const tf2::Vector3 p1,
-  const tf2::Vector3 p2, const tf2::Vector3 p3,
-  const double normalized_step, nav_msgs::msg::Path & path)
-{
+void CubicBezier::generateCubicBezierCurve(const tf2::Vector3 p0,
+                                           const tf2::Vector3 p1,
+                                           const tf2::Vector3 p2,
+                                           const tf2::Vector3 p3,
+                                           const double max_path_resolution,
+                                           nav_msgs::msg::Path &path) {
+  // Approximate normalized step by computing a bound on length by summing the
+  // control segments lengths
+  double normalized_step =
+      ((p1 - p0).length() + (p2 - p1).length() + (p3 - p2).length()) /
+      max_path_resolution;
   for (double scale = 0.0; scale < 1.0; scale += normalized_step) {
     // The Green Lines in Link 1
     auto q0 = tf2::lerp(p0, p1, scale);
@@ -30,8 +36,6 @@ void CubicBezier2D::generateCubicBezierCurve(
     // The Blue Line in Link 1
     auto r0 = tf2::lerp(q0, q1, scale);
     auto r1 = tf2::lerp(q1, q2, scale);
-    // Vector representing the tangent of the blue line
-    auto r = r1 - r0;
 
     // The Black Dot in Link 1
     auto bezier_point = tf2::lerp(r0, r1, scale);
@@ -41,6 +45,8 @@ void CubicBezier2D::generateCubicBezierCurve(
     point.pose.position.x = bezier_point.x();
     point.pose.position.y = bezier_point.y();
     point.pose.position.z = bezier_point.z();
+    // Vector representing the tangent of the blue line
+    auto r = r1 - r0;
     auto bezier_quaternion = tf2::Quaternion(r, 0.0);
     point.pose.orientation.x = bezier_quaternion.x();
     point.pose.orientation.y = bezier_quaternion.y();
@@ -51,4 +57,4 @@ void CubicBezier2D::generateCubicBezierCurve(
   }
 }
 
-}  // namespace curve_generator
+} // namespace curve_generator
