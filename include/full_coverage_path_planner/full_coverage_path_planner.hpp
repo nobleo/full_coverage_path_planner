@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "full_coverage_path_planner/common.hpp"
+#include "full_coverage_path_planner/curve_generator.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include <angles/angles.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -19,6 +20,8 @@
 #include <nav_msgs/srv/get_map.hpp>
 #include <nav2_costmap_2d/costmap_2d_ros.hpp>
 #include <nav2_util/node_utils.hpp>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Vector3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using std::string;
@@ -78,6 +81,21 @@ protected:
   void parsePointlist2Plan(
     const geometry_msgs::msg::PoseStamped & start, std::list<Point_t> const & goalpoints,
     std::vector<geometry_msgs::msg::PoseStamped> & plan);
+
+  /**
+   * @brief Convert internal representation of a path to a vector of paths
+   * @param path robot plan containing list of poses
+   * @param enable_smoothing if true sections are stiched smoothly avoiding turning in place
+   * @param max_path_resolution Maximum desired resolution for smooth path
+   * @param grid_size Grid size of original plan
+   * @param path_vector Output path vector
+   */
+  void convertPlanToPathVector(
+    const std::vector<geometry_msgs::msg::PoseStamped> & plan,
+    const bool enable_smoothing,
+    const double max_path_resolution,
+    const double grid_size,
+    std::vector<nav_msgs::msg::Path> & path_vector);
 
   /**
    * @brief Convert ROS Occupancy grid to internal grid representation, given the size of a single tile
