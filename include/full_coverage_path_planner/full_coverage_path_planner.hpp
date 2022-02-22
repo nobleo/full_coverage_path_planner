@@ -8,15 +8,15 @@
 #include <angles/angles.h>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <nav2_costmap_2d/costmap_2d_ros.hpp>
+#include <nav2_util/node_utils.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <nav_msgs/srv/get_map.hpp>
-#include <nav2_costmap_2d/costmap_2d_ros.hpp>
-#include <nav2_util/node_utils.hpp>
 
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Vector3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <fstream>
 #include <list>
@@ -69,7 +69,7 @@ public:
   /**
    * @brief Publish a path for visualization purposes
    */
-  void publishPlan(const std::vector<geometry_msgs::msg::PoseStamped> & path);
+  void publishPlan(const std::vector<geometry_msgs::msg::PoseStamped> & plan);
 
   // Cost for checking coverage. Perhaps define this in coverage costmap
   // plugin?
@@ -89,17 +89,24 @@ protected:
 
   /**
    * @brief Convert internal representation of a path to a vector of paths
-   * @param path robot plan containing list of poses
    * @param enable_smoothing if true sections are stiched smoothly avoiding
    * turning in place
    * @param max_path_resolution Maximum desired resolution for smooth path
    * @param grid_size Grid size of original plan
+   * @param plan robot plan containing list of poses. The plan poses are
+   * modified
    * @param path_vector Output path vector
    */
-  void convertPlanToPathVector(
-    const std::vector<geometry_msgs::msg::PoseStamped> & plan,
+  void smoothPlan(
     const bool enable_smoothing, const double max_path_resolution,
-    const double grid_size, std::vector<nav_msgs::msg::Path> & path_vector);
+    const double grid_size,
+    std::vector<geometry_msgs::msg::PoseStamped> & plan,
+    std::vector<nav_msgs::msg::Path> & path_vector);
+
+  void
+  convertPathVectorToPlan(
+    const std::vector<nav_msgs::msg::Path> & path_vector,
+    std::vector<geometry_msgs::msg::PoseStamped> & plan);
 
   /**
    * @brief Convert ROS Occupancy grid to internal grid representation, given

@@ -31,6 +31,9 @@
 namespace full_coverage_path_planner
 {
 
+constexpr double FCPP_ANGLE_EPS =
+  0.1;    // Minimum difference to detect angle differences
+
 FullCoveragePathPlanner::FullCoveragePathPlanner()
 : initialized_(false) {}
 
@@ -57,21 +60,37 @@ void FullCoveragePathPlanner::publishPlan(
   plan_pub_->publish(gui_path);
 }
 
-// void FullCoveragePathPlanner::publishPlan(const
-// std::vector<nav_msgs::msg::Path> & path_vector)
-// {
-// }
+void FullCoveragePathPlanner::convertPathVectorToPlan(
+  const std::vector<nav_msgs::msg::Path> & path_vector,
+  std::vector<geometry_msgs::msg::PoseStamped> & plan)
+{
+  for (auto path_it = path_vector.begin(); path_it != path_vector.end();
+    path_it++)
+  {
+    for (auto pose_it = path_it->poses.begin(); pose_it != path_it->poses.end();
+      pose_it++)
+    {
+      if (path_it == (path_vector.end() - 1)) {
+        plan.push_back(*pose_it);
+      } else {
+        if (pose_it != (path_it->poses.end() - 1)) {
+          plan.push_back(*pose_it);
+        }
+      }
+    }
+  }
+}
 
-void FullCoveragePathPlanner::convertPlanToPathVector(
-  const std::vector<geometry_msgs::msg::PoseStamped> & plan,
+void FullCoveragePathPlanner::smoothPlan(
   const bool enable_smoothing, const double max_path_resolution,
-  const double grid_size, std::vector<nav_msgs::msg::Path> & path_vector)
+  const double grid_size, std::vector<geometry_msgs::msg::PoseStamped> & plan,
+  std::vector<nav_msgs::msg::Path> & path_vector)
 {
   //  Create a message for the plan
 
   // If no smoothing is enabled, simply gather sections of two waypoints
   if (!enable_smoothing) {
-    for (auto it = plan.begin(); it != plan.end(); it++) {
+    for (auto it = plan.begin(); it != (plan.end() - 1); it++) {
       nav_msgs::msg::Path path;
       path.header.frame_id = plan[0].header.frame_id;
       path.header.stamp = plan[0].header.stamp;
@@ -83,7 +102,8 @@ void FullCoveragePathPlanner::convertPlanToPathVector(
     }
   } else {
     auto bezier_generator = curve_generator::CubicBezier();
-    for (auto it = plan.begin(); it != (plan.end() - 2); it++) {
+    bool u_turn = false;
+    for (auto it = plan.begin() + 1; it != (plan.end() - 2); it++) {
       nav_msgs::msg::Path path;
       path.header.frame_id = plan[0].header.frame_id;
       path.header.stamp = plan[0].header.stamp;
@@ -91,75 +111,148 @@ void FullCoveragePathPlanner::convertPlanToPathVector(
       it_next++;
       auto it_second_next = it_next;
       it_second_next++;
+      auto it_previous = it;
+      it_previous--;
+      // Check if there is a pure rotation
+      tf2::Transform tf_current_pose;
+      tf2::convert((*it).pose, tf_current_pose);
+      tf2::Transform tf_next_pose;
+      tf2::convert((*it_next).pose, tf_next_pose);
+      double turning_angle = tf_next_pose.getRotation().angleShortestPath(
+        tf_current_pose.getRotation());
+      tf2::Transform tf_second_next_pose;
+      tf2::convert((*it_second_next).pose, tf_second_next_pose);
+      double next_turning_angle =
+        tf_second_next_pose.getRotation().angleShortestPath(
+        tf_next_pose.getRotation());
 
-      // For now we do not smooth section of the the first two poses to avoid an
-      // overshooting path
-      if (it == plan.begin()) {
+      RCLCPP_INFO(
+        rclcpp::get_logger("FullCoveragePathPlanner"),
+        "turning_angle: %.2f", turning_angle);
+      RCLCPP_INFO(
+        rclcpp::get_logger("FullCoveragePathPlanner"),
+        "next_turning_angle: %.2f", next_turning_angle);
+
+      // Only add sections when turns are detected
+      if (u_turn == true) {
+        RCLCPP_INFO(
+          rclcpp::get_logger("FullCoveragePathPlanner"),
+          "Second part of U-turn");
+        // U-turn, just add rotation to path
         path.poses.push_back(*it);
         path.poses.push_back(*it_next);
         path_vector.push_back(path);
-      } else {
-        auto it_previous = it;
-        it_previous--;
-        // Check if there is a pure rotation
-        tf2::Transform tf_current_pose;
-        tf2::convert(*it, tf_current_pose);
-        tf2::Transform tf_next_pose;
-        tf2::convert(*it_next, tf_next_pose);
-        double turning_angle = tf_next_pose.getRotation().angleShortestPath(
-          tf_current_pose.getRotation());
-        if (abs(turning_angle) > 0.1) {
-          // Compute Bezier control points
-          tf2::Transform tf_previous_pose;
-          tf2::convert(*it_previous, tf_previous_pose);
-          auto vector_pose_diff =
-            tf_current_pose.getOrigin() - tf_previous_pose.getOrigin();
-          auto length_current_straight_segment = vector_pose_diff.length();
-          tf2::Transform tf_second_next_pose;
-          tf2::convert(*it_second_next, tf_second_next_pose);
-          vector_pose_diff =
-            tf_second_next_pose.getOrigin() - tf_next_pose.getOrigin();
-          auto length_next_straight_segment = vector_pose_diff.length();
+        u_turn = false;
+      } else if (abs(turning_angle) > FCPP_ANGLE_EPS &&  // NOLINT
+        abs(next_turning_angle) > FCPP_ANGLE_EPS)
+      {
+        RCLCPP_INFO(
+          rclcpp::get_logger("FullCoveragePathPlanner"),
+          "First part of U-turn");
+        // U turn described as two turns. Do not smooth
+        u_turn = true;
+        // Add previous straight segment
+        path.poses.push_back(*it_previous);
+        // Add rotation
+        path.poses.push_back(*it);
+        path.poses.push_back(*it_next);
+        path_vector.push_back(path);
+      } else if (abs(turning_angle) > FCPP_ANGLE_EPS &&  // NOLINT
+        abs(turning_angle) <= (M_PI + FCPP_ANGLE_EPS) &&
+        abs(next_turning_angle) < FCPP_ANGLE_EPS)
+      {
+        // Single turn, apply smoothing
+        // Compute Bezier control points
+        tf2::Transform tf_previous_pose;
+        tf2::convert((*it_previous).pose, tf_previous_pose);
+        auto vector_pose_diff =
+          tf_current_pose.getOrigin() - tf_previous_pose.getOrigin();
+        auto length_current_straight_segment = vector_pose_diff.length();
+        vector_pose_diff =
+          tf_second_next_pose.getOrigin() - tf_next_pose.getOrigin();
+        auto length_next_straight_segment = vector_pose_diff.length();
 
-          double clip_distance;
-          if (length_current_straight_segment > grid_size &&
-            length_next_straight_segment > grid_size)
-          {
-            // default clip_distance
-            clip_distance = grid_size;
-          } else {
-            // short clip_distance for two consecutive turns
-            clip_distance = grid_size / 2.0;
-          }
-          // p0 is located at a clip_distance inside the corner point along the
-          // current straight path
-          auto p0 = tf_previous_pose.getOrigin().lerp(
-            tf_current_pose.getOrigin(),
-            1 - clip_distance / length_current_straight_segment);
-          // p1 is located at a clip_distance beyond the corner point along the
-          // current straight path
-          auto p1 = tf_previous_pose.getOrigin().lerp(
-            tf_current_pose.getOrigin(),
-            1 + clip_distance / length_current_straight_segment);
-          // p2 is located at a clip_distance before the corner point along the
-          // next straight path
-          auto p2 = tf_next_pose.getOrigin().lerp(
-            tf_second_next_pose.getOrigin(),
-            -clip_distance / length_current_straight_segment);
-          // p3 is located at a clip_distance inside the corner point along the
-          // next straight path
-          auto p3 = tf_next_pose.getOrigin().lerp(
-            tf_second_next_pose.getOrigin(),
-            clip_distance / length_current_straight_segment);
-          bezier_generator.generateCubicBezierCurve(
-            p0, p1, p2, p3,
-            max_path_resolution, path);
-          path_vector.push_back(path);
+        RCLCPP_INFO(
+          rclcpp::get_logger("FullCoveragePathPlanner"),
+          "length_current_straight_segment: %.2f",
+          length_current_straight_segment);
+        RCLCPP_INFO(
+          rclcpp::get_logger("FullCoveragePathPlanner"),
+          "length_next_straight_segment: %.2f",
+          length_next_straight_segment);
+
+        double clip_distance;
+        if (length_current_straight_segment > grid_size &&
+          length_next_straight_segment > grid_size)
+        {
+          // default clip_distance
+          clip_distance = grid_size;
+        } else {
+          // short clip_distance for two consecutive turns
+          clip_distance = grid_size / 2.0;
         }
+        RCLCPP_INFO(
+          rclcpp::get_logger("FullCoveragePathPlanner"),
+          "clip_distance: %.2f", clip_distance);
+        // p0 is located at a clip_distance inside the corner point along the
+        // current straight path
+        auto p0 = tf_previous_pose.getOrigin().lerp(
+          tf_current_pose.getOrigin(),
+          1 - clip_distance / length_current_straight_segment);
+        // p1 is located at the corner
+        auto p1 = tf_current_pose.getOrigin();
+        // p2 is located at the corner
+        auto p2 = tf_current_pose.getOrigin();
+        // p3 is located at a clip_distance beyond the corner point along the
+        // next straight path
+        auto p3 = tf_next_pose.getOrigin().lerp(
+          tf_second_next_pose.getOrigin(),
+          clip_distance / length_next_straight_segment);
 
-        // If so, compute start, end and control points
-        // For simplicity, both control points are located at the original
-        // corner
+        // modify plan poses to save clipped poses
+
+        it->pose.position.x = p0.x();
+        it->pose.position.y = p0.y();
+        it->pose.position.z = p0.z();
+        it_next->pose.position.x = p3.x();
+        it_next->pose.position.y = p3.y();
+        it_next->pose.position.z = p3.z();
+
+        // Add previous straight segment
+        path.poses.push_back(*it_previous);
+        path.poses.push_back(*it);
+        path_vector.push_back(path);
+        path.poses.clear();
+
+        RCLCPP_INFO(
+          rclcpp::get_logger("FullCoveragePathPlanner"),
+          "(p1 - p0).length(): %.2f", (p1 - p0).length());
+        RCLCPP_INFO(
+          rclcpp::get_logger("FullCoveragePathPlanner"),
+          "(p2 - p1).length(): %.2f", (p2 - p1).length());
+        RCLCPP_INFO(
+          rclcpp::get_logger("FullCoveragePathPlanner"),
+          "(p3 - p2).length(): %.2f", (p3 - p2).length());
+        double normalized_step =
+          max_path_resolution /
+          ((p1 - p0).length() + (p2 - p1).length() + (p3 - p2).length());
+        RCLCPP_INFO(
+          rclcpp::get_logger("FullCoveragePathPlanner"),
+          "normalized_step: %.2f", normalized_step);
+        // Add smooth curve
+        bezier_generator.generateCubicBezierCurve(
+          p0, p1, p2, p3,
+          max_path_resolution, path);
+        path_vector.push_back(path);
+        path.poses.clear();
+
+        // Add next segment only if it is the last one
+        if (it_second_next == (plan.end() - 1)) {
+          path.poses.push_back(*it_next);
+          path.poses.push_back(*it_second_next);
+          path_vector.push_back(path);
+          path.poses.clear();
+        }
       }
     }
   }
