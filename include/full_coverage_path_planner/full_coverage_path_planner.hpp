@@ -91,14 +91,14 @@ protected:
    * @brief Convert internal representation of a path to a vector of paths
    * @param enable_smoothing if true sections are stiched smoothly avoiding
    * turning in place
-   * @param max_path_resolution Maximum desired resolution for smooth path
+   * @param max_smoothing_resolution Maximum desired resolution for smooth path
    * @param grid_size Grid size of original plan
    * @param plan robot plan containing list of poses. The plan poses are
    * modified
    * @param path_vector Output path vector
    */
   void smoothPlan(
-    const bool enable_smoothing, const double max_path_resolution,
+    const bool enable_smoothing, const double max_smoothing_resolution,
     const double grid_size,
     std::vector<geometry_msgs::msg::PoseStamped> & plan,
     std::vector<nav_msgs::msg::Path> & path_vector);
@@ -149,6 +149,8 @@ protected:
   double vehicle_width_, plan_resolution_, tile_size_;
   int division_factor_, manoeuvre_resolution_, max_overlap_forward_,
     max_overlap_turn_;
+  bool enable_path_smoothing_;
+  double max_smoothing_resolution_;
   dPoint_t grid_origin_;
   bool initialized_;
   geometry_msgs::msg::PoseStamped previous_goal_;

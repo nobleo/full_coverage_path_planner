@@ -3,7 +3,8 @@
 //
 #include "full_coverage_path_planner/curve_generator.hpp"
 
-namespace curve_generator {
+namespace curve_generator
+{
 
 // Generate Cubic BezierCurve using the logic in these sources
 // Link 1:
@@ -16,17 +17,19 @@ namespace curve_generator {
 // https://stackoverflow.com/questions/37642168/how-to-convert-quadratic-bezier-curve-code-into-cubic-bezier-curve/37642695#37642695
 // We add the calculation of the angle given by the blue lines in the gifs.
 
-void CubicBezier::generateCubicBezierCurve(const tf2::Vector3 p0,
-                                           const tf2::Vector3 p1,
-                                           const tf2::Vector3 p2,
-                                           const tf2::Vector3 p3,
-                                           const double max_path_resolution,
-                                           nav_msgs::msg::Path &path) {
+void CubicBezier::generateCubicBezierCurve(
+  const tf2::Vector3 p0,
+  const tf2::Vector3 p1,
+  const tf2::Vector3 p2,
+  const tf2::Vector3 p3,
+  const double max_path_resolution,
+  nav_msgs::msg::Path & path)
+{
   // Approximate normalized step by computing a bound on length by summing the
   // control segments lengths
   double normalized_step =
-      max_path_resolution /
-      ((p1 - p0).length() + (p2 - p1).length() + (p3 - p2).length());
+    max_path_resolution /
+    ((p1 - p0).length() + (p2 - p1).length() + (p3 - p2).length());
   for (double scale = 0.0; scale < 1.0; scale += normalized_step) {
     // The Green Lines in Link 1
     auto q0 = tf2::lerp(p0, p1, scale);
@@ -62,4 +65,4 @@ void CubicBezier::generateCubicBezierCurve(const tf2::Vector3 p0,
   }
 }
 
-} // namespace curve_generator
+}  // namespace curve_generator

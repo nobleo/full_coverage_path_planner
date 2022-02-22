@@ -82,7 +82,7 @@ void FullCoveragePathPlanner::convertPathVectorToPlan(
 }
 
 void FullCoveragePathPlanner::smoothPlan(
-  const bool enable_smoothing, const double max_path_resolution,
+  const bool enable_smoothing, const double max_smoothing_resolution,
   const double grid_size, std::vector<geometry_msgs::msg::PoseStamped> & plan,
   std::vector<nav_msgs::msg::Path> & path_vector)
 {
@@ -234,7 +234,7 @@ void FullCoveragePathPlanner::smoothPlan(
           rclcpp::get_logger("FullCoveragePathPlanner"),
           "(p3 - p2).length(): %.2f", (p3 - p2).length());
         double normalized_step =
-          max_path_resolution /
+          max_smoothing_resolution /
           ((p1 - p0).length() + (p2 - p1).length() + (p3 - p2).length());
         RCLCPP_INFO(
           rclcpp::get_logger("FullCoveragePathPlanner"),
@@ -242,7 +242,7 @@ void FullCoveragePathPlanner::smoothPlan(
         // Add smooth curve
         bezier_generator.generateCubicBezierCurve(
           p0, p1, p2, p3,
-          max_path_resolution, path);
+          max_smoothing_resolution, path);
         path_vector.push_back(path);
         path.poses.clear();
 
