@@ -1,13 +1,13 @@
 //
 // Copyright [2020] Nobleo Technology"  [legal/copyright]
 //
+#include <full_coverage_path_planner/common.hpp>
+
 #include <algorithm>
 #include <iostream>
 #include <limits>
 #include <list>
 #include <vector>
-
-#include <full_coverage_path_planner/common.hpp>
 
 int distanceToClosestPoint(Point_t poi, std::list<Point_t> const & goals)
 {
