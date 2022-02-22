@@ -4,7 +4,7 @@
 #ifndef FULL_COVERAGE_PATH_PLANNER__CURVE_GENERATOR_HPP_
 #define FULL_COVERAGE_PATH_PLANNER__CURVE_GENERATOR_HPP_
 
-#include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/path.hpp>
 
 #include <tf2/LinearMath/Quaternion.h>
