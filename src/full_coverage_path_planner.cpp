@@ -199,10 +199,14 @@ void FullCoveragePathPlanner::smoothPlan(
         auto p0 = tf_previous_pose.getOrigin().lerp(
           tf_current_pose.getOrigin(),
           1 - clip_distance / length_current_straight_segment);
-        // p1 is located at the corner
-        auto p1 = tf_current_pose.getOrigin();
-        // p2 is located at the corner
-        auto p2 = tf_current_pose.getOrigin();
+        // p1 is located at half way distance from the corner
+        auto p1 = tf_previous_pose.getOrigin().lerp(
+          tf_current_pose.getOrigin(),
+          1 - clip_distance / length_current_straight_segment / 2.0);
+        // p2 is located at half way distance from the corner
+        auto p2 = tf_next_pose.getOrigin().lerp(
+          tf_second_next_pose.getOrigin(),
+          clip_distance / length_next_straight_segment / 2.0);
         // p3 is located at a clip_distance beyond the corner point along the
         // next straight path
         auto p3 = tf_next_pose.getOrigin().lerp(
