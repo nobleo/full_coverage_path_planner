@@ -157,8 +157,19 @@ void FullCoveragePathPlanner::smoothPlan(
         path.poses.push_back(*it);
         path.poses.push_back(*it_next);
         path_vector.push_back(path);
+      } else if (abs(turning_angle) > (M_PI / 2.0 + FCPP_ANGLE_EPS)) {
+        RCLCPP_INFO(
+          rclcpp::get_logger("FullCoveragePathPlanner"),
+          "Full U-turn");
+        // U turn described as one turns. Do not smooth
+        // Add previous straight segment
+        path.poses.push_back(*it_previous);
+        // Add rotation
+        path.poses.push_back(*it);
+        path.poses.push_back(*it_next);
+        path_vector.push_back(path);
       } else if (abs(turning_angle) > FCPP_ANGLE_EPS &&  // NOLINT
-        abs(turning_angle) <= (M_PI + FCPP_ANGLE_EPS) &&
+        abs(turning_angle) <= (M_PI / 2.0 + FCPP_ANGLE_EPS) &&
         abs(next_turning_angle) < FCPP_ANGLE_EPS)
       {
         // Single turn, apply smoothing
