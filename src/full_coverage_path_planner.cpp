@@ -192,16 +192,14 @@ void FullCoveragePathPlanner::smoothPlan(
           "length_next_straight_segment: %.2f",
           length_next_straight_segment);
 
-        double clip_distance;
-        if (length_current_straight_segment > grid_size &&
-          length_next_straight_segment > grid_size)
+        double clip_distance = 2.0 * grid_size;  // default clip_distance
+        if (length_current_straight_segment < clip_distance ||
+          length_next_straight_segment < clip_distance)
         {
-          // default clip_distance
-          clip_distance = grid_size;
-        } else {
           // short clip_distance for two consecutive turns
           clip_distance = grid_size / 2.0;
         }
+
         RCLCPP_INFO(
           rclcpp::get_logger("FullCoveragePathPlanner"),
           "clip_distance: %.2f", clip_distance);
