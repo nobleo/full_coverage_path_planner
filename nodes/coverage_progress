@@ -90,7 +90,7 @@ class CoverageProgressNode(object):
         grid.info.origin.orientation.w = 1
 
         # Initialize OccupancyGrid to have all cells DIRTY
-        grid.data = self.DIRTY * ones(grid.info.width * grid.info.height)
+        grid.data = self.DIRTY * ones(grid.info.width * grid.info.height, dtype=int)
 
         return grid
 
