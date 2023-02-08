@@ -50,7 +50,7 @@ class CoverageProgressNode(object):
         self.reset_srv = rospy.Service('reset', Trigger, self.reset)
 
         self._rate = rospy.get_param("~rate", 10.0)
-        self._update_timer = rospy.Timer(rospy.Duration(1.0/self._rate), self._update_callback)
+        self._update_timer = rospy.Timer(rospy.Duration(1.0/self._rate), self._update_callback, reset=True)
 
     def _initialize_map(self):
         # Initialize coverage matrix
