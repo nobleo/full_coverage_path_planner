@@ -30,8 +30,6 @@ class CoverageProgressNode(object):
         self.tf_buffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tf_buffer)
 
-        x = None  # type: float
-        y = None  # type: float
         self._coverage_area = None  # type: Tuple[float, float]
 
         self.coverage_resolution = None  # type: float  # How big is a cell [m]
@@ -111,6 +109,7 @@ class CoverageProgressNode(object):
         # Initialize message
         self.grid.header = Header()
         self.grid.header.frame_id = self.map_frame
+        self.grid.header.stamp = coverage_tf.header.stamp
 
         # Loop over amount of cells covered in x (j) and y (i) direction
         for i in range(2 * self.coverage_radius_cells):
@@ -128,9 +127,6 @@ class CoverageProgressNode(object):
 
                 if cell_in_coverage_circle and cell_in_grid:
                     self.grid.data[array_index] = max(0, self.grid.data[array_index] - self.coverage_effectivity)
-        else:
-            rospy.logdebug("x_point %i y_point %i, x_meas %f, y_meas %f", x_point, y_point, coveragepos[X],
-                           coveragepos[Y])
 
         coverage_progress = float(sum([self.grid.data < self.DIRTY])) / (self.grid.info.width * self.grid.info.height)
 
