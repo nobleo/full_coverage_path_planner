@@ -74,7 +74,7 @@
         <param name="~target_area/y" value="$(arg coverage_area_size_y)" />
         <param name="~coverage_radius" value="$(arg tool_radius)" />
         <remap from="reset" to="coverage_progress/reset" />
-        <param name="~map_frame" value="/coverage_map"/>
+        <param name="~map_frame" value="coverage_map"/>
     </node>
 
     <!-- Trigger planner by publishing a move_base goal -->
