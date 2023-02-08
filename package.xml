@@ -22,7 +22,7 @@
   <depend>pluginlib</depend>
   <depend>nav_core</depend>
   <depend>roscpp</depend>
-  <depend>tf</depend>
+  <depend>tf2_ros</depend>
   <exec_depend>amcl</exec_depend>
   <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>map_server</exec_depend>
