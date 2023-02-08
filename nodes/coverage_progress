@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 import rospy
-import tf
+import tf2_ros
 from nav_msgs.msg import OccupancyGrid
 from numpy import ones, sum
 from std_msgs.msg import Float32, Header
@@ -27,10 +27,9 @@ class CoverageProgressNode(object):
     DIRTY = 100
 
     def __init__(self):
-        self.listener = tf.TransformListener()
+        self.tf_buffer = tf2_ros.Buffer()
+        self.listener = tf2_ros.TransformListener(self.tf_buffer)
 
-        x = None  # type: float
-        y = None  # type: float
         self._coverage_area = None  # type: Tuple[float, float]
 
         self.coverage_resolution = None  # type: float  # How big is a cell [m]
@@ -49,7 +48,7 @@ class CoverageProgressNode(object):
         self.reset_srv = rospy.Service('reset', Trigger, self.reset)
 
         self._rate = rospy.get_param("~rate", 10.0)
-        self._update_timer = rospy.Timer(rospy.Duration(1.0/self._rate), self._update_callback)
+        self._update_timer = rospy.Timer(rospy.Duration(1.0/self._rate), self._update_callback, reset=True)
 
     def _initialize_map(self):
         # Initialize coverage matrix
@@ -98,17 +97,19 @@ class CoverageProgressNode(object):
         # Get the position of point (0,0,0) the coverage_disk frame wrt. the map frame (which can both be remapped if need be)
 
         try:
-            (coveragepos, rot) = self.listener.lookupTransform(self.map_frame, self.coverage_frame, rospy.Time(0))
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            coverage_tf = self.tf_buffer.lookup_transform(self.map_frame, self.coverage_frame, rospy.Time(0))
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+            rospy.logwarn(e)
             return
 
         # Element of matrix corresponding to middle of coverage surface
-        x_point = int((coveragepos[X] - self.grid.info.origin.position.x) / self.coverage_resolution)
-        y_point = int((coveragepos[Y] - self.grid.info.origin.position.y) / self.coverage_resolution)
+        x_point = int((coverage_tf.transform.translation.x - self.grid.info.origin.position.x) / self.coverage_resolution)
+        y_point = int((coverage_tf.transform.translation.y - self.grid.info.origin.position.y) / self.coverage_resolution)
 
         # Initialize message
         self.grid.header = Header()
         self.grid.header.frame_id = self.map_frame
+        self.grid.header.stamp = coverage_tf.header.stamp
 
         # Loop over amount of cells covered in x (j) and y (i) direction
         for i in range(2 * self.coverage_radius_cells):
@@ -126,9 +127,6 @@ class CoverageProgressNode(object):
 
                 if cell_in_coverage_circle and cell_in_grid:
                     self.grid.data[array_index] = max(0, self.grid.data[array_index] - self.coverage_effectivity)
-        else:
-            rospy.logdebug("x_point %i y_point %i, x_meas %f, y_meas %f", x_point, y_point, coveragepos[X],
-                           coveragepos[Y])
 
         coverage_progress = float(sum([self.grid.data < self.DIRTY])) / (self.grid.info.width * self.grid.info.height)
 
