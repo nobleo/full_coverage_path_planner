@@ -18,11 +18,11 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>backward_ros</depend>
   <depend>geometry_msgs</depend>
-  <depend>nav2_costmap_2d</depend>
-  <depend>nav2_core</depend>
   <depend>nav2_common</depend>
-  <depend>nav2_util</depend>
+  <depend>nav2_core</depend>
+  <depend>nav2_costmap_2d</depend>
   <depend>nav2_msgs</depend>
+  <depend>nav2_util</depend>
   <depend>nav_msgs</depend>
   <depend>pluginlib</depend>
   <depend>rclcpp</depend>
@@ -33,6 +33,7 @@
   <exec_depend>nav2_planner</exec_depend>
   <exec_depend>rviz2</exec_depend>
 
+  <test_depend>ament_cmake_clang_format</test_depend>
   <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>ament_cmake_test</test_depend>
   <test_depend>ament_lint_auto</test_depend>

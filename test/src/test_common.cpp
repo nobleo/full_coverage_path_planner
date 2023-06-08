@@ -8,17 +8,17 @@
  * Most important here is the conversion function and a variant of A*. Each test is explained below
  *
  */
+#include <full_coverage_path_planner/common.h>
+#include <full_coverage_path_planner/util.h>
+#include <gtest/gtest.h>
+
 #include <list>
 #include <vector>
 
-#include <gtest/gtest.h>
 #include "rclcpp/rclcpp.hpp"
 
-#include <full_coverage_path_planner/common.h>
-#include <full_coverage_path_planner/util.h>
-
 /**
- * DistanceSquared uses euclidian distance except for the expensive sqrt-call: returns dx^2+dy^2.
+ * DistanceSquared uses euclidean distance except for the expensive sqrt-call: returns dx^2+dy^2.
  */
 TEST(TestDistanceSquared, testDistanceSquared)
 {
@@ -35,14 +35,16 @@ TEST(TestDistanceSquared, testDistanceSquared)
 
   /* Points at equal distance in direct directions should have same value
    */
-  ASSERT_EQ(distanceSquared({0, 0}, {11, 10}),  // NOLINT
-            distanceSquared({0, 0}, {10, 11}));  // NOLINT
+  ASSERT_EQ(
+    distanceSquared({0, 0}, {11, 10}),   // NOLINT
+    distanceSquared({0, 0}, {10, 11}));  // NOLINT
 
   /* The function is used mostly to order points by distance, so the actual value doesn't matter.
    * The only property that is important is that points further away should have a larger value than those close by
    */
-  ASSERT_LE(distanceSquared({0, 0}, {10, 10}),  // NOLINT
-            distanceSquared({0, 0}, {11, 11}));  // NOLINT
+  ASSERT_LE(
+    distanceSquared({0, 0}, {10, 10}),   // NOLINT
+    distanceSquared({0, 0}, {11, 11}));  // NOLINT
 }
 
 /*
@@ -59,7 +61,8 @@ TEST(TestDistanceToClosestPoint, testDistanceToOnlyPoint)
   // There is only 1 point, at 1,1, so the (squared) distance is 2
   ASSERT_EQ(2, distanceToClosestPoint(poi, goals));
 
-  goals.push_back({2, 2});  // NOLINT // We add a point that is further away, so the first point is still closest
+  goals.push_back(
+    {2, 2});  // NOLINT // We add a point that is further away, so the first point is still closest
   ASSERT_EQ(2, distanceToClosestPoint(poi, goals));
 }
 
@@ -89,21 +92,21 @@ TEST(TestDistanceToClosestPoint, testDistanceAtIntLimits)
 {
   Point_t poi = {0, 0};  // NOLINT
   std::list<Point_t> goals;
-  for (int i = 0; i < 32768; ++i)
-  {
+  for (int i = 0; i < 32768; ++i) {
     goals.push_back({i, i});  // NOLINT
   }
 
   ASSERT_NO_THROW(distanceToClosestPoint(poi, goals));  // OK for small enough dimensions
   ASSERT_EQ(0, distanceToClosestPoint(poi, goals));
 
-  for (int i = 32768; i < 100000; ++i)
-  {
+  for (int i = 32768; i < 100000; ++i) {
     goals.push_back({i, i});  // NOLINT
   }
 
   // Squaring and adding 100000 is too much for an int
-  ASSERT_THROW(distanceToClosestPoint(poi, goals), std::range_error);  // Must throw for large enough dimensions
+  ASSERT_THROW(
+    distanceToClosestPoint(poi, goals),
+    std::range_error);  // Must throw for large enough dimensions
 }
 
 /*
@@ -113,16 +116,14 @@ TEST(TestDistanceToClosestPoint, testDistanceAtIntNegativeLimits)
 {
   Point_t poi = {0, 0};  // NOLINT
   std::list<Point_t> goals;
-  for (int i = 0; i < 32768; ++i)
-  {
+  for (int i = 0; i < 32768; ++i) {
     goals.push_back({-i, -i});  // NOLINT
   }
 
   ASSERT_NO_THROW(distanceToClosestPoint(poi, goals));
   ASSERT_EQ(0, distanceToClosestPoint(poi, goals));
 
-  for (int i = 32768; i < 100000; ++i)
-  {
+  for (int i = 32768; i < 100000; ++i) {
     goals.push_back({-i, -i});  // NOLINT
   }
 
@@ -155,10 +156,8 @@ TEST(TestDistanceToClosestPoint, testDistanceToDiagonal)
 {
   Point_t poi = {100, 100};  // NOLINT
   std::list<Point_t> goals;
-  for (int i = 0; i < 10; ++i)
-  {
-    for (int j = 0; j < 10; ++j)
-    {
+  for (int i = 0; i < 10; ++i) {
+    for (int j = 0; j < 10; ++j) {
       goals.push_back({i, j});  // NOLINT
     }
   }
@@ -181,7 +180,7 @@ TEST(TestMakeTestGrid, testDimensions)
   ASSERT_EQ(3, grid.at(1).size());
   ASSERT_EQ(3, grid.at(2).size());
   ASSERT_EQ(3, grid.at(3).size());
-  ASSERT_ANY_THROW(grid.at(3).at(3));  // Only 3 items in X direction (horizontal) so no index 3
+  ASSERT_ANY_THROW(grid.at(3).at(3));   // Only 3 items in X direction (horizontal) so no index 3
   ASSERT_ANY_THROW(grid.at(4).size());  // Only 4 items in Y direction (vertical) so no index 4
 }
 
@@ -190,7 +189,7 @@ TEST(TestMakeTestGrid, testDimensions)
  */
 TEST(TestMap_2_goals, testFindSingle)
 {
-/* Map will be 3x3 with only the middle value set to true, the others being false
+  /* Map will be 3x3 with only the middle value set to true, the others being false
  *
  * [ 0 0 0 ]
  * [ 0 1 0 ]
@@ -212,7 +211,7 @@ TEST(TestMap_2_goals, testFindSingle)
  */
 TEST(TestMap_2_goals, testNumberOfGoals)
 {
-/* Map:
+  /* Map:
  * [ 1 0 0 ]
  * [ 0 1 0 ]
  * [ 0 0 1 ]
@@ -230,7 +229,7 @@ TEST(TestMap_2_goals, testNumberOfGoals)
 
   // And specifically those 3, not anything else
   Point_t corner0 = {0, 0};  // NOLINT
-  Point_t center = {1, 1};  // NOLINT
+  Point_t center = {1, 1};   // NOLINT
   Point_t corner2 = {2, 2};  // NOLINT
   ASSERT_EQ(corner0, goalVector.at(0));
   ASSERT_EQ(center, goalVector.at(1));
@@ -243,7 +242,7 @@ TEST(TestMap_2_goals, testNumberOfGoals)
  */
 TEST(TestMap_2_goals, testInvertedMap)
 {
-/* Map:
+  /* Map:
  * [ 1 1 1 ]
  * [ 1 0 1 ]
  * [ 1 1 1 ]
@@ -251,7 +250,7 @@ TEST(TestMap_2_goals, testInvertedMap)
   std::vector<std::vector<bool> > grid = makeTestGrid(3, 3, true);
   grid[1][1] = false;
 
-  ASSERT_EQ(8, map_2_goals(grid, true).size());  // There are 8 true values
+  ASSERT_EQ(8, map_2_goals(grid, true).size());   // There are 8 true values
   ASSERT_EQ(1, map_2_goals(grid, false).size());  // There is only 1 false value
 }
 
@@ -261,7 +260,7 @@ TEST(TestMap_2_goals, testInvertedMap)
  */
 TEST(TestMap_2_goals, testCoordinateOrder)
 {
-/* Map is 3x4
+  /* Map is 3x4
  * [ 0 0 0 ]
  * [ 0 0 0 ]
  * [ 0 0 0 ]
@@ -314,12 +313,12 @@ TEST(TestAStarToOpenSpace, testEmptyMap)
 
   std::list<gridNode_t> pathNodes;
 
-  bool resign = a_star_to_open_space(grid,  // map to traverse, all empty
-                                     start,  // Start
-                                     1,  // Cost of traversing a node
-                                     visited,  // Visited nodes, of which there are none yet
-                                     goals,
-                                     pathNodes);
+  bool resign = a_star_to_open_space(
+    grid,     // map to traverse, all empty
+    start,    // Start
+    1,        // Cost of traversing a node
+    visited,  // Visited nodes, of which there are none yet
+    goals, pathNodes);
   /*
    * [p] We came from here
    * [p] and this is the first unvisited, non-obstacle cell so we step here
@@ -327,7 +326,8 @@ TEST(TestAStarToOpenSpace, testEmptyMap)
    * [0]
    */
 
-  std::vector<gridNode_t> pathNodesVector = std::vector<gridNode_t>(pathNodes.begin(), pathNodes.end());
+  std::vector<gridNode_t> pathNodesVector =
+    std::vector<gridNode_t>(pathNodes.begin(), pathNodes.end());
   ASSERT_EQ(false, resign);
 
   // First element is that initial node
@@ -368,19 +368,20 @@ TEST(TestAStarToOpenSpace, testSingleVisitedCellMap)
 
   std::list<gridNode_t> pathNodes;
 
-  bool resign = a_star_to_open_space(grid,  // map to traverse, all empty
-                                     start,  // Start
-                                     1,  // Cost of traversing a node
-                                     visited,  // Visited nodes, of which there are none yet
-                                     goals,
-                                     pathNodes);
+  bool resign = a_star_to_open_space(
+    grid,     // map to traverse, all empty
+    start,    // Start
+    1,        // Cost of traversing a node
+    visited,  // Visited nodes, of which there are none yet
+    goals, pathNodes);
   /*
    * [p]
    * [p]
    * [p]
    * [0]
    */
-  std::vector<gridNode_t> pathNodesVector = std::vector<gridNode_t>(pathNodes.begin(), pathNodes.end());
+  std::vector<gridNode_t> pathNodesVector =
+    std::vector<gridNode_t>(pathNodes.begin(), pathNodes.end());
   ASSERT_EQ(false, resign);
 
   ASSERT_EQ(0, pathNodesVector.at(0).pos.x);
@@ -422,19 +423,20 @@ TEST(TestAStarToOpenSpace, testSingleMulticellVisitedMap)
 
   std::list<gridNode_t> pathNodes;
 
-  bool resign = a_star_to_open_space(grid,  // map to traverse, all empty
-                                     start,  // Start
-                                     1,  // Cost of traversing a node
-                                     visited,  // Visited nodes, of which there are none yet
-                                     goals,
-                                     pathNodes);
+  bool resign = a_star_to_open_space(
+    grid,     // map to traverse, all empty
+    start,    // Start
+    1,        // Cost of traversing a node
+    visited,  // Visited nodes, of which there are none yet
+    goals, pathNodes);
   /* Several paths possible, but each covers 3 nodes, e.g.
    * [p p p 0]
    * [v v 0 0]
    * [0 0 0 0]
    * [0 0 0 0]
    */
-  std::vector<gridNode_t> pathNodesVector = std::vector<gridNode_t>(pathNodes.begin(), pathNodes.end());
+  std::vector<gridNode_t> pathNodesVector =
+    std::vector<gridNode_t>(pathNodes.begin(), pathNodes.end());
   ASSERT_EQ(false, resign);
   ASSERT_EQ(3, pathNodes.size());
 }
@@ -477,12 +479,12 @@ TEST(TestAStarToOpenSpace, testMazeMap)
 
   std::list<gridNode_t> pathNodes;
 
-  bool resign = a_star_to_open_space(grid,  // map to traverse, all empty
-                                     start,  // Start
-                                     1,  // Cost of traversing a node
-                                     visited,  // Visited nodes, of which there are none yet
-                                     goals,
-                                     pathNodes);
+  bool resign = a_star_to_open_space(
+    grid,     // map to traverse, all empty
+    start,    // Start
+    1,        // Cost of traversing a node
+    visited,  // Visited nodes, of which there are none yet
+    goals, pathNodes);
   /*
    * [p p p p]
    * [1 1 1 p]
@@ -531,12 +533,12 @@ TEST(TestAStarToOpenSpace, testMazeWithHoleMap)
 
   std::list<gridNode_t> pathNodes;
 
-  bool resign = a_star_to_open_space(grid,  // map to traverse, all empty
-                                     start,  // Start
-                                     1,  // Cost of traversing a node
-                                     visited,  // Visited nodes, of which there are none yet
-                                     goals,
-                                     pathNodes);
+  bool resign = a_star_to_open_space(
+    grid,     // map to traverse, all empty
+    start,    // Start
+    1,        // Cost of traversing a node
+    visited,  // Visited nodes, of which there are none yet
+    goals, pathNodes);
   /*
    * [p p p p]
    * [1 1 1 p]
@@ -574,19 +576,19 @@ TEST(TestAStarToOpenSpace, testBlockedMap)
 
   std::list<gridNode_t> pathNodes;
 
-  bool resign = a_star_to_open_space(grid,  // map to traverse, all empty
-                                     start,  // Start
-                                     1,  // Cost of traversing a node
-                                     visited,  // Visited nodes, of which there are none yet
-                                     goals,
-                                     pathNodes);
+  bool resign = a_star_to_open_space(
+    grid,     // map to traverse, all empty
+    start,    // Start
+    1,        // Cost of traversing a node
+    visited,  // Visited nodes, of which there are none yet
+    goals, pathNodes);
   // No path possible so we should resign
   ASSERT_EQ(true, resign);
   ASSERT_EQ(1, pathNodes.size());  // Only the cell we start at:
   ASSERT_EQ(start.pos, pathNodes.front().pos);
 }
 // Run all the tests that were declared with TEST()
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

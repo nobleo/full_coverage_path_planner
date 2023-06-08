@@ -10,29 +10,27 @@
  * By putting the path nodes in a set, we are left with only the unique elements
  *  and then we can count how big that set is (i.e. the cardinality of the set of path nodes)
  */
-#include <list>
-#include <set>
-#include <vector>
-
-#include <time.h>
-#include <stdlib.h>
-
-#include <gtest/gtest.h>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/opencv.hpp>
-#include "rclcpp/rclcpp.hpp"
-
 #include <full_coverage_path_planner/common.h>
 #include <full_coverage_path_planner/spiral_stc.h>
 #include <full_coverage_path_planner/util.h>
+#include <gtest/gtest.h>
+#include <stdlib.h>
+#include <time.h>
 
-cv::Mat drawMap(std::vector<std::vector<bool> > const& grid);
+#include <list>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/opencv.hpp>
+#include <set>
+#include <vector>
 
-cv::Mat drawPath(const cv::Mat &mapImg,
-                 const cv::Mat &pathImg,
-                 const Point_t &start,
-                 std::list<Point_t> &path);
+#include "rclcpp/rclcpp.hpp"
+
+cv::Mat drawMap(std::vector<std::vector<bool> > const & grid);
+
+cv::Mat drawPath(
+  const cv::Mat & mapImg, const cv::Mat & pathImg, const Point_t & start,
+  std::list<Point_t> & path);
 
 /*
  * On a map with nothing on it, spiral_stc should cover all the nodes of the map
@@ -43,10 +41,8 @@ TEST(TestSpiralStc, testFillEmptyMap)
 
   Point_t start = {0, 0};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
-                                                                              start,
-                                                                              multiple_pass_counter,
-                                                                              visited_counter);
+  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(
+    grid, start, multiple_pass_counter, visited_counter);
 
   ASSERT_EQ(4 * 4, path.size());  // All nodes of the 4x4 map are covered
 }
@@ -67,10 +63,8 @@ TEST(TestSpiralStc, testFillMapWithOneObstacle)
 
   Point_t start = {0, 0};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
-                                                                              start,
-                                                                              multiple_pass_counter,
-                                                                              visited_counter);
+  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(
+    grid, start, multiple_pass_counter, visited_counter);
 
   // By Adding the nodes of the path to the set, we only retain the unique elements
   std::set<Point_t, CompareByPosition> pathSet(path.begin(), path.end());
@@ -96,10 +90,8 @@ TEST(TestSpiralStc, testFillMapWith2Obstacles)
 
   Point_t start = {0, 0};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
-                                                                              start,
-                                                                              multiple_pass_counter,
-                                                                              visited_counter);
+  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(
+    grid, start, multiple_pass_counter, visited_counter);
 
   // By Adding the nodes of the path to the set, we only retain the unique elements
   std::set<Point_t, CompareByPosition> pathSet(path.begin(), path.end());
@@ -127,10 +119,8 @@ TEST(TestSpiralStc, testFillMapWithHalfBlocked)
 
   Point_t start = {0, 0};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
-                                                                              start,
-                                                                              multiple_pass_counter,
-                                                                              visited_counter);
+  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(
+    grid, start, multiple_pass_counter, visited_counter);
 
   // By Adding the nodes of the path to the set, we only retain the unique elements
   std::set<Point_t, CompareByPosition> pathSet(path.begin(), path.end());
@@ -158,10 +148,8 @@ TEST(TestSpiralStc, testFillMapWithWall)
 
   Point_t start = {0, 0};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
-                                                                              start,
-                                                                              multiple_pass_counter,
-                                                                              visited_counter);
+  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(
+    grid, start, multiple_pass_counter, visited_counter);
 
   // By Adding the nodes of the path to the set, we only retain the unique elements
   std::set<Point_t, CompareByPosition> pathSet(path.begin(), path.end());
@@ -189,10 +177,8 @@ TEST(TestSpiralStc, testDeadEnd1)
 
   Point_t start = {1, 2};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
-                                                                              start,
-                                                                              multiple_pass_counter,
-                                                                              visited_counter);
+  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(
+    grid, start, multiple_pass_counter, visited_counter);
 
   cv::Mat pathImg = mapImg.clone();
   cv::Mat pathViz = drawPath(mapImg, pathImg, start, path);
@@ -233,10 +219,8 @@ TEST(TestSpiralStc, testDeadEnd1WithTopRow)
 
   Point_t start = {1, 3};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
-                                                                              start,
-                                                                              multiple_pass_counter,
-                                                                              visited_counter);
+  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(
+    grid, start, multiple_pass_counter, visited_counter);
 
   cv::Mat pathImg = mapImg.clone();
   cv::Mat pathViz = drawPath(mapImg, pathImg, start, path);
@@ -268,10 +252,8 @@ TEST(TestSpiralStc, testDeadEnd2)
 
   Point_t start = {3, 0};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
-                                                                              start,
-                                                                              multiple_pass_counter,
-                                                                              visited_counter);
+  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(
+    grid, start, multiple_pass_counter, visited_counter);
 
   cv::Mat pathImg = mapImg.clone();
   cv::Mat pathViz = drawPath(mapImg, pathImg, start, path);
@@ -309,10 +291,8 @@ TEST(TestSpiralStc, testDeadEnd3)
 
   Point_t start = {5, 2};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
-                                                                              start,
-                                                                              multiple_pass_counter,
-                                                                              visited_counter);
+  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(
+    grid, start, multiple_pass_counter, visited_counter);
 
   cv::Mat pathImg = mapImg.clone();
   cv::Mat pathViz = drawPath(mapImg, pathImg, start, path);
@@ -359,10 +339,8 @@ TEST(TestSpiralStc, testDeadEnd3WithTopRow)
 
   Point_t start = {5, 3};  // NOLINT
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
-                                                                              start,
-                                                                              multiple_pass_counter,
-                                                                              visited_counter);
+  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(
+    grid, start, multiple_pass_counter, visited_counter);
 
   cv::Mat pathImg = mapImg.clone();
   cv::Mat pathViz = drawPath(mapImg, pathImg, start, path);
@@ -380,18 +358,15 @@ TEST(TestSpiralStc, testDeadEnd3WithTopRow)
  * @param grid
  * @return 2D 8-bit single-channel image
  */
-cv::Mat drawMap(std::vector<std::vector<bool> > const& grid)
+cv::Mat drawMap(std::vector<std::vector<bool> > const & grid)
 {
   int y_size = static_cast<int>(grid.size());
   int x_size = static_cast<int>(grid[0].size());
 
   cv::Mat mapImg = cv::Mat::zeros(y_size, x_size, CV_8U);  // CV_8U 8bit unsigned int 1 channel
-  for (int k = 0; k < y_size; k++)
-  {
-    for (int l = 0; l < x_size; l++)
-    {
-      if (grid[k][l])
-      {
+  for (int k = 0; k < y_size; k++) {
+    for (int l = 0; l < x_size; l++) {
+      if (grid[k][l]) {
         cv::rectangle(mapImg, {l, k}, {l, k}, 255);  // NOLINT
       }
     }
@@ -408,10 +383,8 @@ cv::Mat drawMap(std::vector<std::vector<bool> > const& grid)
  * @param path the actual path to be drawn
  * @return 2D RGB image for visualisation purposes
  */
-cv::Mat drawPath(const cv::Mat &mapImg,
-                 const cv::Mat &pathImg,
-                 const Point_t &start,
-                 std::list<Point_t> &path)
+cv::Mat drawPath(
+  const cv::Mat & mapImg, const cv::Mat & pathImg, const Point_t & start, std::list<Point_t> & path)
 {
   cv::Mat pathViz = cv::Mat::zeros(mapImg.cols, mapImg.rows, CV_8UC3);
   std::vector<cv::Mat> channels;
@@ -421,9 +394,8 @@ cv::Mat drawPath(const cv::Mat &mapImg,
   cv::merge(channels, pathViz);
 
   int step = 0;
-  for (std::list<Point_t>::iterator it = path.begin(); it != path.end(); ++it)
-  {
-//      std::cout << "Path at (" << it->x << ", " << it->y << ")" << std::endl;
+  for (std::list<Point_t>::iterator it = path.begin(); it != path.end(); ++it) {
+    // std::cout << "Path at (" << it->x << ", " << it->y << ")" << std::endl;
     cv::rectangle(pathImg, {it->x, it->y}, {it->x, it->y}, 255);  // NOLINT
 
     // Color the path in lighter and lighter color towards the end
@@ -436,14 +408,8 @@ cv::Mat drawPath(const cv::Mat &mapImg,
   // Draw the start and end in green and red, resp.
   cv::Scalar green(0, 255, 0);
   cv::Scalar red(0, 0, 255);
-  cv::rectangle(pathViz,
-  {start.x, start.y},
-  {start.x, start.y},
-  green);
-  cv::rectangle(pathViz,
-  {path.back().x, path.back().y},
-  {path.back().x, path.back().y},
-  red);
+  cv::rectangle(pathViz, {start.x, start.y}, {start.x, start.y}, green);
+  cv::rectangle(pathViz, {path.back().x, path.back().y}, {path.back().x, path.back().y}, red);
   return pathViz;
 }
 
@@ -454,7 +420,7 @@ cv::Mat drawPath(const cv::Mat &mapImg,
  * @param start where does the path start?
  * @return
  */
-int calcDifference(const cv::Mat &mapImg, const cv::Mat &pathImg, const Point_t& start)
+int calcDifference(const cv::Mat & mapImg, const cv::Mat & pathImg, const Point_t & start)
 {
   cv::Mat floodfilledImg = mapImg.clone();
   cv::floodFill(floodfilledImg, {start.x, start.y}, 255);  // NOLINT
@@ -469,15 +435,14 @@ int calcDifference(const cv::Mat &mapImg, const cv::Mat &pathImg, const Point_t&
  * @param grid
  * @return
  */
-Point_t findStart(std::vector<std::vector<bool> > const& grid)
+Point_t findStart(std::vector<std::vector<bool> > const & grid)
 {
   unsigned int seed = time(NULL);
   int y_size = grid.size();
   int x_size = grid[0].size();
 
   Point_t start = {rand_r(&seed) % x_size, rand_r(&seed) % y_size};  // Start in some random place
-  while (grid[start.y][start.x])
-  {
+  while (grid[start.y][start.x]) {
     // Try to find a better starting point that is not inside an obstacle
     start = {rand_r(&seed) % x_size, rand_r(&seed) % y_size};  // Start in some random place
   }
@@ -515,21 +480,16 @@ TEST(TestSpiralStc, testRandomMap)
     cv::Mat mapImg = drawMap(grid);
     Point_t start = findStart(grid);
     int multiple_pass_counter, visited_counter;
-    std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
-                                                                                start,
-                                                                                multiple_pass_counter,
-                                                                                visited_counter);
+    std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(
+      grid, start, multiple_pass_counter, visited_counter);
 
     cv::Mat pathImg = mapImg.clone();
     cv::Mat pathViz = drawPath(mapImg, pathImg, start, path);
     int differentPixelCount = calcDifference(mapImg, pathImg, start);
-    if (differentPixelCount)
-    {
+    if (differentPixelCount) {
       cv::imwrite("/tmp/" + std::to_string(i) + "_path_viz.png", pathViz);
       failures++;
-    }
-    else
-    {
+    } else {
       success++;
     }
     EXPECT_EQ(0, differentPixelCount);
@@ -540,7 +500,7 @@ TEST(TestSpiralStc, testRandomMap)
 }
 
 // Run all the tests that were declared with TEST()
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
