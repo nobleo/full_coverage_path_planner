@@ -48,7 +48,7 @@ namespace full_coverage_path_planner
     nav_msgs::msg::Path gui_path;
     gui_path.header.frame_id = path[0].header.frame_id;
     gui_path.header.stamp = path[0].header.stamp;
-    for (const auto pose : path)
+    for (const auto & pose : path)
     {
       gui_path.poses.push_back(pose);
     }

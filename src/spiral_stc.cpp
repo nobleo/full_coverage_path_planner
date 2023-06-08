@@ -24,7 +24,7 @@ namespace full_coverage_path_planner
 
   void SpiralSTC::configure(
       const rclcpp_lifecycle::LifecycleNode::WeakPtr &parent,
-      std::string name, std::shared_ptr<tf2_ros::Buffer> tf,
+      std::string name, std::shared_ptr<tf2_ros::Buffer> /*tf*/,
       std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
   {
     if (!initialized_)
@@ -120,7 +120,7 @@ namespace full_coverage_path_planner
         dx = -dy;
         dy = dx_prev;
       }
-      // This condition might change in the loop bellow
+      // This condition might change in the loop below
       done = true;
       // loop over the four possible directions: up, right, down, left
       for (size_t i = 0; i < 4; ++i)
@@ -264,7 +264,7 @@ namespace full_coverage_path_planner
     return fullPath;
   }
 
-  bool SpiralSTC::makePlan(const geometry_msgs::msg::PoseStamped &start, const geometry_msgs::msg::PoseStamped &goal,
+  bool SpiralSTC::makePlan(const geometry_msgs::msg::PoseStamped &start, const geometry_msgs::msg::PoseStamped &/*goal*/,
                            std::vector<geometry_msgs::msg::PoseStamped> &plan)
   {
     if (!initialized_)

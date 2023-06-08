@@ -19,7 +19,7 @@
 #include <nav_msgs/srv/get_map.hpp>
 #include <nav2_costmap_2d/costmap_2d_ros.hpp>
 #include <nav2_util/node_utils.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 using std::string;
 
