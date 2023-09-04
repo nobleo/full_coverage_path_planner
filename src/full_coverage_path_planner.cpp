@@ -193,9 +193,13 @@ bool FullCoveragePathPlanner::parseCostmap(costmap_2d::Costmap2D* costmap_grid_,
                                            Point_t& scaledStart)
 {
   int ix, iy, nodeRow, nodeCol;
-  uint32_t nodeSize = dmax(floor(toolRadius / costmap_grid_->getResolution()), 1);  // Size of node in pixels/units
-  uint32_t nRows = costmap_grid_->getSizeInCellsY(), nCols = costmap_grid_->getSizeInCellsX();
+  int nodeSize = dmax(floor(toolRadius / costmap_grid_->getResolution()), 1);  // Size of node in pixels/units
+  int robotNodeSize = dmax(floor(robotRadius / costmap_grid_->getResolution()), 1);  // RobotRadius in pixels/units
+  int nodePaddingSize = dmax(ceil(static_cast<float>(robotNodeSize - nodeSize) / 2.0), 0);
+  int nRows = costmap_grid_->getSizeInCellsY(), nCols = costmap_grid_->getSizeInCellsX();
   ROS_INFO("nRows: %u nCols: %u nodeSize: %d", nRows, nCols, nodeSize);
+  ROS_INFO("parseCostmap -> robotNodeSize: %u nodePaddingSize: %u", robotNodeSize, nodePaddingSize);
+  ROS_INFO("parseCostmap -> robotRadius: %f toolRadius: %f", robotRadius, toolRadius);
 
   if (nRows == 0 || nCols == 0)
   {
@@ -225,12 +229,14 @@ bool FullCoveragePathPlanner::parseCostmap(costmap_2d::Costmap2D* costmap_grid_,
     for (ix = 0; ix < nCols; ix = ix + nodeSize)
     {
       bool nodeOccupied = false;
-      for (nodeRow = 0; (nodeRow < nodeSize) && ((iy + nodeRow) < nRows) && (nodeOccupied == false); ++nodeRow)
+      for (nodeRow = 0; (nodeRow < robotNodeSize) && ((iy - nodePaddingSize + nodeRow) < nRows) && (nodeOccupied == false); ++nodeRow)
       {
-        for (nodeCol = 0; (nodeCol < nodeSize) && ((ix + nodeCol) < nCols); ++nodeCol)
+        if ((iy - nodePaddingSize + nodeRow) < 0) {continue;}
+        for (nodeCol = 0; (nodeCol < robotNodeSize) && ((ix - nodePaddingSize + nodeCol) < nCols); ++nodeCol)
         {
-          double mx = ix + nodeCol;
-          double my = iy + nodeRow;
+          if ((ix - nodePaddingSize + nodeCol) < 0) {continue;}
+          double mx = ix - nodePaddingSize + nodeCol;
+          double my = iy - nodePaddingSize + nodeRow;
           if (costmap_grid_->getCost(mx, my) > costmap_2d::INSCRIBED_INFLATED_OBSTACLE)
           {
             nodeOccupied = true;
