@@ -24,7 +24,7 @@
 #include <ros/ros.h>
 
 #include <full_coverage_path_planner/common.h>
-#include <full_coverage_path_planner/spiral_stc.h>
+#include <full_coverage_path_planner/boustrophedon_stc.h>
 #include <full_coverage_path_planner/util.h>
 
 cv::Mat drawMap(std::vector<std::vector<bool> > const& grid);
@@ -35,15 +35,15 @@ cv::Mat drawPath(const cv::Mat &mapImg,
                  std::list<Point_t> &path);
 
 /*
- * On a map with nothing on it, spiral_stc should cover all the nodes of the map
+ * On a map with nothing on it, boustrophedon_stc should cover all the nodes of the map
  */
-TEST(TestSpiralStc, testFillEmptyMap)
+TEST(TestBoustrophedonStc, testFillEmptyMap)
 {
   std::vector<std::vector<bool> > grid = makeTestGrid(4, 4, false);
 
   Point_t start = {0, 0};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
+  std::list<Point_t> path = full_coverage_path_planner::BoustrophedonSTC::boustrophedon_stc(grid,
                                                                               start,
                                                                               multiple_pass_counter,
                                                                               visited_counter);
@@ -54,7 +54,7 @@ TEST(TestSpiralStc, testFillEmptyMap)
 /*
  * On a map with a single obstacle, all the other nodes should still be visited.
  */
-TEST(TestSpiralStc, testFillMapWithOneObstacle)
+TEST(TestBoustrophedonStc, testFillMapWithOneObstacle)
 {
   /*
    * [s 0 0 0]
@@ -67,7 +67,7 @@ TEST(TestSpiralStc, testFillMapWithOneObstacle)
 
   Point_t start = {0, 0};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
+  std::list<Point_t> path = full_coverage_path_planner::BoustrophedonSTC::boustrophedon_stc(grid,
                                                                               start,
                                                                               multiple_pass_counter,
                                                                               visited_counter);
@@ -82,7 +82,7 @@ TEST(TestSpiralStc, testFillMapWithOneObstacle)
 /*
  * In a map with 2 obstacles, still the complete map should be covered except for those 2 obstacles
  */
-TEST(TestSpiralStc, testFillMapWith2Obstacles)
+TEST(TestBoustrophedonStc, testFillMapWith2Obstacles)
 {
   /*
    * [s 0 0 0]
@@ -96,7 +96,7 @@ TEST(TestSpiralStc, testFillMapWith2Obstacles)
 
   Point_t start = {0, 0};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
+  std::list<Point_t> path = full_coverage_path_planner::BoustrophedonSTC::boustrophedon_stc(grid,
                                                                               start,
                                                                               multiple_pass_counter,
                                                                               visited_counter);
@@ -111,7 +111,7 @@ TEST(TestSpiralStc, testFillMapWith2Obstacles)
 /*
  * On a 4x4 map where the opposite right half of the map is blocked, we can cover only the 4x2 reachable nodes
  */
-TEST(TestSpiralStc, testFillMapWithHalfBlocked)
+TEST(TestBoustrophedonStc, testFillMapWithHalfBlocked)
 {
   /*
    * [s 0 1 0]
@@ -127,7 +127,7 @@ TEST(TestSpiralStc, testFillMapWithHalfBlocked)
 
   Point_t start = {0, 0};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
+  std::list<Point_t> path = full_coverage_path_planner::BoustrophedonSTC::boustrophedon_stc(grid,
                                                                               start,
                                                                               multiple_pass_counter,
                                                                               visited_counter);
@@ -141,9 +141,9 @@ TEST(TestSpiralStc, testFillMapWithHalfBlocked)
 
 /*
  * On a map with a wall almost blocking off a half of the map, but leaving a gap to the other side,
- *  spiral_stc should still cover all reachable nodes
+ *  boustrophedon_stc should still cover all reachable nodes
  */
-TEST(TestSpiralStc, testFillMapWithWall)
+TEST(TestBoustrophedonStc, testFillMapWithWall)
 {
   /*
    * [s 0 1 0]
@@ -158,7 +158,7 @@ TEST(TestSpiralStc, testFillMapWithWall)
 
   Point_t start = {0, 0};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
+  std::list<Point_t> path = full_coverage_path_planner::BoustrophedonSTC::boustrophedon_stc(grid,
                                                                               start,
                                                                               multiple_pass_counter,
                                                                               visited_counter);
@@ -173,7 +173,7 @@ TEST(TestSpiralStc, testFillMapWithWall)
 /*
  * This test case features a very short dead-end
  */
-TEST(TestSpiralStc, testDeadEnd1)
+TEST(TestBoustrophedonStc, testDeadEnd1)
 {
   /*
    * [0 0 1 0]
@@ -189,7 +189,7 @@ TEST(TestSpiralStc, testDeadEnd1)
 
   Point_t start = {1, 2};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
+  std::list<Point_t> path = full_coverage_path_planner::BoustrophedonSTC::boustrophedon_stc(grid,
                                                                               start,
                                                                               multiple_pass_counter,
                                                                               visited_counter);
@@ -208,10 +208,10 @@ TEST(TestSpiralStc, testDeadEnd1)
 /*
  * This test case is an extension of testDeadEnd1, where the top row is also covered as an obstacle.
  * The top row is covered but the obstacle from testDeadEnd1 is shifted downwards
- *  in an attempt to see if SpiralSTC also fails when a dead-end is not on the edge of the map
+ *  in an attempt to see if BoustrophedonSTC also fails when a dead-end is not on the edge of the map
  *  (but below a row of obstacles)
  */
-TEST(TestSpiralStc, testDeadEnd1WithTopRow)
+TEST(TestBoustrophedonStc, testDeadEnd1WithTopRow)
 {
   /*
    * [1 1 1 1]
@@ -233,7 +233,7 @@ TEST(TestSpiralStc, testDeadEnd1WithTopRow)
 
   Point_t start = {1, 3};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
+  std::list<Point_t> path = full_coverage_path_planner::BoustrophedonSTC::boustrophedon_stc(grid,
                                                                               start,
                                                                               multiple_pass_counter,
                                                                               visited_counter);
@@ -252,7 +252,7 @@ TEST(TestSpiralStc, testDeadEnd1WithTopRow)
 /*
  * This test case features a very short dead-end
  */
-TEST(TestSpiralStc, testDeadEnd2)
+TEST(TestBoustrophedonStc, testDeadEnd2)
 {
   /*
    * [1 0 0 0]
@@ -268,7 +268,7 @@ TEST(TestSpiralStc, testDeadEnd2)
 
   Point_t start = {3, 0};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
+  std::list<Point_t> path = full_coverage_path_planner::BoustrophedonSTC::boustrophedon_stc(grid,
                                                                               start,
                                                                               multiple_pass_counter,
                                                                               visited_counter);
@@ -287,7 +287,7 @@ TEST(TestSpiralStc, testDeadEnd2)
 /*
  * This test case features a very short dead-end
  */
-TEST(TestSpiralStc, testDeadEnd3)
+TEST(TestBoustrophedonStc, testDeadEnd3)
 {
   /*
    * [0 0 0 0 0 0 1 0 0]
@@ -309,7 +309,7 @@ TEST(TestSpiralStc, testDeadEnd3)
 
   Point_t start = {5, 2};
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
+  std::list<Point_t> path = full_coverage_path_planner::BoustrophedonSTC::boustrophedon_stc(grid,
                                                                               start,
                                                                               multiple_pass_counter,
                                                                               visited_counter);
@@ -328,7 +328,7 @@ TEST(TestSpiralStc, testDeadEnd3)
 /*
  * This test case features a very short dead-end
  */
-TEST(TestSpiralStc, testDeadEnd3WithTopRow)
+TEST(TestBoustrophedonStc, testDeadEnd3WithTopRow)
 {
   /*
    * [1 1 1 1 1 1 1 1 1]
@@ -359,7 +359,7 @@ TEST(TestSpiralStc, testDeadEnd3WithTopRow)
 
   Point_t start = {5, 3};  // NOLINT
   int multiple_pass_counter, visited_counter;
-  std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
+  std::list<Point_t> path = full_coverage_path_planner::BoustrophedonSTC::boustrophedon_stc(grid,
                                                                               start,
                                                                               multiple_pass_counter,
                                                                               visited_counter);
@@ -496,7 +496,7 @@ Point_t findStart(std::vector<std::vector<bool> > const& grid)
  5. On each coordinate in path, fill pixel at that coordinate in pathImg
  6. pathImg and floodfilledImg should be identical
  */
-TEST(TestSpiralStc, testRandomMap)
+TEST(TestBoustrophedonStc, testRandomMap)
 {
   // Seed pseudorandom sequence to create *reproducible test
   unsigned int seed = 12345;
@@ -515,7 +515,7 @@ TEST(TestSpiralStc, testRandomMap)
     cv::Mat mapImg = drawMap(grid);
     Point_t start = findStart(grid);
     int multiple_pass_counter, visited_counter;
-    std::list<Point_t> path = full_coverage_path_planner::SpiralSTC::spiral_stc(grid,
+    std::list<Point_t> path = full_coverage_path_planner::BoustrophedonSTC::boustrophedon_stc(grid,
                                                                                 start,
                                                                                 multiple_pass_counter,
                                                                                 visited_counter);

@@ -1,14 +1,18 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>full_coverage_path_planner</name>
-  <version>0.6.4</version>
-  <description>Full coverage path planning provides a move_base_flex plugin that can plan a path that will fully cover a given area</description>
+  <version>0.6.5</version>
+  <description>
+    Full coverage path planning provides a move_base_flex plugin that can plan a path that will fully cover a given area.
+    This package has been modified such that a boustophedon pattern is used rather than a spiral algorithm.
+  </description>
   <author email="cesar.lopez@nobleo.nl">Cesar Lopez</author>
   <author email="ferry.schoenmakers@nobleo.nl">Ferry Schoenmakers</author>
   <author email="tim.clephas@nobleo.nl">Tim Clephas</author>
   <author email="jerrel.unkel@nobleo.nl">Jerrel Unkel</author>
   <author>Loy van Beek</author>
   <author>Yury Brodskiy</author>
+  <author email="ethanc.kim@uwaterloo.ca">Ethan Kim</author>
   <maintainer email="cesar.lopez@nobleo.nl">Cesar Lopez</maintainer>
 
   <license>Apache 2.0</license>

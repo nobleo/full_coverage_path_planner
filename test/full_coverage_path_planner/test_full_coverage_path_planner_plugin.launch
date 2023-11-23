@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-    <arg name="map" default="$(find full_coverage_path_planner)/maps/grid.yaml"/>
+    <arg name="map" default="$(find full_coverage_path_planner)/maps/square.yaml"/>
     <arg name="robot_radius" default="0.3"/>
     <arg name="tool_radius" default="0.2"/>
 
@@ -11,13 +11,13 @@
         <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/planners.yaml" command="load" />
         <rosparam file="$(find full_coverage_path_planner)/test/full_coverage_path_planner/param/local_costmap_params.yaml" command="load" />
 
-        <param name="SpiralSTC/robot_radius" value="$(arg robot_radius)"/>
-        <param name="SpiralSTC/tool_radius" value="$(arg tool_radius)"/>
+        <param name="BoustrophedonSTC/robot_radius" value="$(arg robot_radius)"/>
+        <param name="BoustrophedonSTC/tool_radius" value="$(arg tool_radius)"/>
         <param name="global_costmap/robot_radius" value="$(arg robot_radius)"/>
         <remap from="odom" to="/odom"/>
         <remap from="scan" to="/scan"/>
 
-        <remap from="/move_base_flex/SpiralSTC/plan" to="/move_base/SpiralSTC/plan"/>
+        <remap from="/move_base_flex/BoustrophedonSTC/plan" to="/move_base/BoustrophedonSTC/plan"/>
         <remap from="/move_base_flex/tracking_pid/interpolator" to="/move_base/TrackingPidLocalPlanner/interpolator"/>
     </node>
     <!-- Move Base backwards compatibility -->
