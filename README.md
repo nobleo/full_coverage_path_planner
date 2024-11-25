@@ -1,5 +1,9 @@
 # Full Coverage Path Planner (FCPP)
 
+> :grey_exclamation: This package is not in use by our company anymore. Contributions to this package are still welcome!
+
+Paid support options are also available, please contact us at [nobleo-technology.nl](https://nobleo-technology.nl).
+
 ## Overview
 
 This package provides an implementation of a Full Coverage Path Planner (FCPP) using the Backtracking Spiral Algorithm (BSA), see [1].
